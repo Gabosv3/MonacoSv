@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { products as staticProducts, formatCOP } from './products'
-import asadElixirImg from './assets/asad-elixir.png'
+import heroKhamrahImg from './assets/hero-khamrah-cut.png'
+import heroAsadImg from './assets/hero-asad-cut.png'
+import heroMandarinSkyImg from './assets/hero-mandarin-sky-cut.png'
+import heroAsadZanzibarImg from './assets/hero-asad-zanzibar-cut.png'
 import logoImg from './assets/logo.png'
 import { createSale, fetchActiveDiscounts, fetchActiveProducts, fetchCouponByCode } from './admin/api'
 import CinematicHero from './CinematicHero'
@@ -53,7 +56,11 @@ const HERO_SLIDES = staticProducts.slice(0, 4).map((p, i) => ({
   btnText: ['#EDE8DF', '#EDE8DF', '#EDE8DF', '#141414'][i],
   // el resplandor detrás del frasco usa el acento, no el fondo (si no, sería invisible)
   color: ['#6F716F', '#233129', '#141414', '#EDE8DF'][i],
-  image: asadElixirImg,
+  image: [heroKhamrahImg, heroAsadZanzibarImg, heroAsadImg, heroMandarinSkyImg][i],
+  // ajustes finos por foto: cada frasco tiene proporciones distintas
+  imageScale: [0.8, 1, 1, 1][i],
+  imageOffsetX: [0, 0, 0, -20][i],
+  imageOffsetY: [0, 0, 0, 0][i],
 }))
 
 const FEATURES = [
@@ -79,42 +86,38 @@ const FEATURES = [
 
 function BottleScene({ slide }) {
   return (
-    <div className="relative w-full max-w-lg mx-auto flex items-center justify-center">
-      {/* glow detrás de la foto, cambia de color según el producto */}
-      <motion.div
-        className="absolute w-80 h-80 md:w-96 md:h-96 rounded-full blur-[90px]"
-        animate={{
-          opacity: [0.5, 0.85, 0.5],
-          scale: [1, 1.1, 1],
-          backgroundColor: slide.color,
+    <motion.div
+      className="relative w-full max-w-[260px] sm:max-w-[320px] md:max-w-[400px] aspect-[3/4] mx-auto rounded-2xl border flex items-center justify-center overflow-hidden"
+      style={{
+        borderColor: `${slide.text}26`,
+        backgroundColor: `${slide.accent}14`,
+        transition: 'border-color 1.4s ease, background-color 1.4s ease',
+      }}
+      animate={{ y: [0, -8, 0] }}
+      transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      {/* textura de fondo, sutil, igual que el cuadro placeholder */}
+      <div
+        className="absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage: `linear-gradient(${slide.text} 1px, transparent 1px), linear-gradient(90deg, ${slide.text} 1px, transparent 1px)`,
+          backgroundSize: '18px 18px',
         }}
-        transition={{
-          opacity: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-          scale: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
-          backgroundColor: { duration: 0.9 },
-        }}
-        style={{ opacity: 0.35 }}
       />
 
-      <motion.div
-        className="relative"
-        animate={{ y: [0, -12, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.img
-            key={slide.id}
-            src={slide.image}
-            alt={slide.name}
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full max-w-[300px] md:max-w-[390px] object-contain drop-shadow-[0_30px_40px_rgba(0,0,0,0.6)]"
-          />
-        </AnimatePresence>
-      </motion.div>
-    </div>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.img
+          key={slide.id}
+          src={slide.image}
+          alt={slide.name}
+          initial={{ opacity: 0, scale: (slide.imageScale ?? 1) * 0.92, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
+          animate={{ opacity: 1, scale: slide.imageScale ?? 1, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
+          exit={{ opacity: 0, scale: (slide.imageScale ?? 1) * 0.92, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="relative w-[286px] sm:w-[364px] md:w-[468px] max-w-none object-contain drop-shadow-[0_20px_28px_rgba(0,0,0,0.5)]"
+        />
+      </AnimatePresence>
+    </motion.div>
   )
 }
 

@@ -1,18 +1,25 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './admin/AuthContext.jsx'
 import RequireAuth from './admin/RequireAuth.jsx'
-import AdminLayout from './admin/AdminLayout.jsx'
-import Login from './admin/pages/Login.jsx'
-import Dashboard from './admin/pages/Dashboard.jsx'
-import Products from './admin/pages/Products.jsx'
-import Purchases from './admin/pages/Purchases.jsx'
-import Sales from './admin/pages/Sales.jsx'
-import Discounts from './admin/pages/Discounts.jsx'
-import Coupons from './admin/pages/Coupons.jsx'
+
+// El panel administrativo solo lo carga quien entra a /admin — la tienda
+// pública no necesita descargarlo.
+const AdminLayout = lazy(() => import('./admin/AdminLayout.jsx'))
+const Login = lazy(() => import('./admin/pages/Login.jsx'))
+const Dashboard = lazy(() => import('./admin/pages/Dashboard.jsx'))
+const Products = lazy(() => import('./admin/pages/Products.jsx'))
+const Purchases = lazy(() => import('./admin/pages/Purchases.jsx'))
+const Sales = lazy(() => import('./admin/pages/Sales.jsx'))
+const Discounts = lazy(() => import('./admin/pages/Discounts.jsx'))
+const Coupons = lazy(() => import('./admin/pages/Coupons.jsx'))
+
+function AdminFallback() {
+  return <p className="p-8 text-sm text-neutral-400">Cargando…</p>
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -20,12 +27,21 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <Routes>
           <Route path="/" element={<App />} />
-          <Route path="/admin/login" element={<Login />} />
+          <Route
+            path="/admin/login"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <Login />
+              </Suspense>
+            }
+          />
           <Route
             path="/admin"
             element={
               <RequireAuth>
-                <AdminLayout />
+                <Suspense fallback={<AdminFallback />}>
+                  <AdminLayout />
+                </Suspense>
               </RequireAuth>
             }
           >
