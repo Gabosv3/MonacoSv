@@ -1,0 +1,10 @@
+# MonacoSV — enruta todo a index.html para que las URLs limpias (sin #)
+# funcionen incluso cuando alguien entra directo a /coleccion, /admin, etc.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ index.html [L]
+</IfModule>

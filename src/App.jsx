@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { products as staticProducts, formatCOP } from './products'
 import heroKhamrahImg from './assets/hero-khamrah-cut.png'
@@ -27,7 +28,13 @@ function effectivePrice(discounts, product) {
   return Math.max(0, Math.round(product.price - off))
 }
 
-const NAV_LINKS = ['Inicio', 'Fragancias', 'Colección', 'Nosotros', 'Contacto']
+const NAV_LINKS = [
+  { label: 'Inicio', to: '/' },
+  { label: 'Fragancias', to: '/fragancias' },
+  { label: 'Colección', to: '/coleccion' },
+  { label: 'Nosotros', to: '/nosotros' },
+  { label: 'Contacto', to: '/contacto' },
+]
 
 // Cada slide usa el catálogo real (nombre/color). La foto es la única que
 // tenemos por ahora — se tiñe por CSS para diferenciar cada fragancia.
@@ -149,10 +156,14 @@ function ProductCard({ product, onAdd, index, discounts }) {
       whileHover={{ y: -6 }}
       className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
       <div
-        className="h-40 flex items-center justify-center text-white text-sm font-medium"
+        className="h-40 flex items-center justify-center text-white text-sm font-medium overflow-hidden"
         style={{ backgroundColor: product.color }}
       >
-        {product.category}
+        {product.image_url ? (
+          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+        ) : (
+          product.category
+        )}
       </div>
       <div className="p-4 flex flex-col gap-2 flex-1">
         <div className="flex items-start justify-between gap-2">
@@ -387,13 +398,31 @@ function CartDrawer({ items, discounts, subtotal, onClose, onRemove, onQty, onOr
   )
 }
 
-export default function App() {
+export default function App({ scrollTo } = {}) {
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
   const [category, setCategory] = useState('Todas')
   const [menuOpen, setMenuOpen] = useState(false)
   const [slideIndex, setSlideIndex] = useState(0)
+  // Una vez que alguien ve la intro completa en esta pestaña, no se le
+  // vuelve a mostrar (por ejemplo, si navega a otra página y regresa).
+  const [introDone, setIntroDone] = useState(
+    () => sessionStorage.getItem('monacosv_intro_seen') === '1'
+  )
   const slide = HERO_SLIDES[slideIndex]
+
+  const markIntroDone = () => {
+    sessionStorage.setItem('monacosv_intro_seen', '1')
+    setIntroDone(true)
+  }
+
+  // Si se llega a la página con un destino de scroll (p. ej. /coleccion),
+  // baja hasta ahí apenas la tienda esté lista para mostrarse.
+  useEffect(() => {
+    if (!scrollTo || !introDone) return
+    const el = document.getElementById(scrollTo)
+    el?.scrollIntoView({ behavior: 'smooth' })
+  }, [scrollTo, introDone])
 
   // Catálogo real: arranca con los datos locales (pintan al instante) y se
   // reemplaza por lo que haya en Supabase apenas cargue — si la base de
@@ -412,12 +441,15 @@ export default function App() {
       .catch((err) => console.warn('No se pudieron cargar los descuentos:', err.message))
   }, [])
 
+  // El carrusel no gira mientras dura la intro cinematográfica: arranca
+  // recién cuando el visitante le da a "Ver tienda".
   useEffect(() => {
+    if (!introDone) return
     const timer = setInterval(() => {
       setSlideIndex((i) => (i + 1) % HERO_SLIDES.length)
     }, 8000)
     return () => clearInterval(timer)
-  }, [])
+  }, [introDone])
 
   const prevSlide = () => setSlideIndex((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
   const nextSlide = () => setSlideIndex((i) => (i + 1) % HERO_SLIDES.length)
@@ -457,7 +489,12 @@ export default function App() {
       {/* intro cinematográfica: video con scroll, antes de todo lo demás.
           Mientras dura, el menú real está oculto y solo hay un botón de
           contacto flotante; el menú aparece al llegar al resto de la tienda. */}
-      <CinematicHero whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}`} logoSrc={logoImg} />
+      <CinematicHero
+        whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}`}
+        logoSrc={logoImg}
+        skipIntro={introDone}
+        onDismiss={markIntroDone}
+      />
 
       {/* navbar — sticky, siempre en el flujo justo al inicio de la tienda.
           Mientras la intro cinematográfica está activa, la tapa por completo
@@ -494,14 +531,14 @@ export default function App() {
             <div className="flex items-center gap-5 sm:gap-8">
               <nav className="hidden md:flex items-center gap-5">
                 {NAV_LINKS.map((link) => (
-                  <a
-                    key={link}
-                    href={link === 'Colección' ? '#catalogo' : '#'}
+                  <Link
+                    key={link.to}
+                    to={link.to}
                     className="text-[11px] uppercase tracking-[0.2em] transition-colors"
                     style={{ color: slide.textDim }}
                   >
-                    {link}
-                  </a>
+                    {link.label}
+                  </Link>
                 ))}
               </nav>
 
@@ -555,15 +592,15 @@ export default function App() {
             >
               <div className="px-4 py-4 flex flex-col gap-4">
                 {NAV_LINKS.map((link) => (
-                  <a
-                    key={link}
-                    href={link === 'Colección' ? '#catalogo' : '#'}
+                  <Link
+                    key={link.to}
+                    to={link.to}
                     onClick={() => setMenuOpen(false)}
                     className="text-xs uppercase tracking-[0.2em] transition-colors"
                     style={{ color: slide.textDim }}
                   >
-                    {link}
-                  </a>
+                    {link.label}
+                  </Link>
                 ))}
               </div>
             </motion.nav>

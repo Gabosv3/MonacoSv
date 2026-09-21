@@ -1,8 +1,9 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
+import ComingSoon from './pages/ComingSoon.jsx'
 import { AuthProvider } from './admin/AuthContext.jsx'
 import RequireAuth from './admin/RequireAuth.jsx'
 
@@ -23,10 +24,14 @@ function AdminFallback() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <HashRouter>
+    <BrowserRouter>
       <AuthProvider>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/coleccion" element={<App scrollTo="catalogo" />} />
+          <Route path="/fragancias" element={<ComingSoon title="Fragancias" />} />
+          <Route path="/nosotros" element={<ComingSoon title="Nosotros" />} />
+          <Route path="/contacto" element={<ComingSoon title="Contacto" />} />
           <Route
             path="/admin/login"
             element={
@@ -54,6 +59,6 @@ createRoot(document.getElementById('root')).render(
           </Route>
         </Routes>
       </AuthProvider>
-    </HashRouter>
+    </BrowserRouter>
   </StrictMode>,
 )

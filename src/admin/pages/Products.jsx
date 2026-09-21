@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createProduct, deleteProduct, listProducts, updateProduct } from '../api'
 import { formatCOP } from '../../products'
 
@@ -10,6 +10,7 @@ const EMPTY = {
   cost: '',
   volume: '',
   color: '#141414',
+  image_url: '',
   stock: '',
   min_stock: '5',
   active: true,
@@ -22,6 +23,13 @@ export default function Products() {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [showForm, setShowForm] = useState(false)
+
+  // categorías ya usadas, para sugerirlas al escribir una nueva (así se van
+  // "creando" categorías sin necesitar una tabla aparte)
+  const categoryOptions = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(),
+    [products]
+  )
 
   const load = () => {
     setLoading(true)
@@ -49,6 +57,7 @@ export default function Products() {
       cost: p.cost,
       volume: p.volume,
       color: p.color,
+      image_url: p.image_url || '',
       stock: p.stock,
       min_stock: p.min_stock,
       active: p.active,
@@ -105,7 +114,18 @@ export default function Products() {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-neutral-200 p-5 mb-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
           <input required placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border rounded-lg px-3 py-2 text-sm col-span-2 sm:col-span-1" />
-          <input placeholder="Categoría" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
+          <input
+            placeholder="Categoría"
+            list="category-options"
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            className="border rounded-lg px-3 py-2 text-sm"
+          />
+          <datalist id="category-options">
+            {categoryOptions.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
           <input placeholder="Volumen (ej. 50 ml)" value={form.volume} onChange={(e) => setForm({ ...form, volume: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
           <input required type="number" step="0.01" placeholder="Precio de venta" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
           <input type="number" step="0.01" placeholder="Costo" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
@@ -115,6 +135,20 @@ export default function Products() {
             <label className="text-xs text-neutral-500">Color</label>
             <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="w-9 h-9 border rounded" />
           </div>
+          <input
+            placeholder="URL de la foto (opcional)"
+            value={form.image_url}
+            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            className="border rounded-lg px-3 py-2 text-sm col-span-2 sm:col-span-3"
+          />
+          {form.image_url && (
+            <img
+              src={form.image_url}
+              alt="Vista previa"
+              className="col-span-2 sm:col-span-3 h-32 w-32 object-cover rounded-lg border"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
             Activo (visible en la tienda)

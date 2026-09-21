@@ -44,8 +44,8 @@ function splitHeadline(el) {
   })
 }
 
-export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#catalogo' }) {
-  const [active, setActive] = useState(true)
+export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#catalogo', onDismiss, skipIntro = false }) {
+  const [active, setActive] = useState(!skipIntro)
   const [dismissing, setDismissing] = useState(false)
   const [ended, setEnded] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
@@ -65,6 +65,12 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
     return () => mq.removeEventListener('change', apply)
   }, [])
 
+  // En la versión estática no hay intro que saltarse: el resto de la
+  // tienda (como el carrusel) puede arrancar de una vez.
+  useEffect(() => {
+    if (isStatic) onDismiss?.()
+  }, [isStatic])
+
   // Bloquea el scroll de la página mientras la intro está activa.
   useEffect(() => {
     if (!active || isStatic) return
@@ -82,8 +88,9 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
   }, [])
 
   useEffect(() => {
-    if (isStatic) return
+    if (isStatic || !active) return
     const video = videoRef.current
+    if (!video) return
     const ring = ringRef.current
     const VIDEO_URL = '/hero/hero-scrub.mp4'
     let rafId = null
@@ -216,7 +223,10 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
                     disabled={!ended || dismissing}
                     onClick={() => {
                       setDismissing(true)
-                      setTimeout(() => setActive(false), 950)
+                      setTimeout(() => {
+                        setActive(false)
+                        onDismiss?.()
+                      }, 950)
                     }}
                   >
                     Ver tienda ↓
