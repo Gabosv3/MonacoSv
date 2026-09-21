@@ -36,14 +36,19 @@ const NAV_LINKS = ['Inicio', 'Fragancias', 'Colección', 'Nosotros', 'Contacto']
 // Negro carbón, Blanco hueso, Gris humo, Verde bosque profundo
 const HERO_SLIDES = staticProducts.slice(0, 4).map((p, i) => ({
   id: p.id,
-  name: p.name,
+  name: ['Khamrah Qahwa', 'Asad Zanzibar', 'Asad Elixir', 'Mandarin Sky'][i],
   tagline: [
-    ['HAZ QUE', 'VOLTEEN A VERTE'],
-    ['ENERGÍA QUE', 'SE SIENTE'],
-    ['ELEGANCIA QUE', 'ENAMORA'],
-    ['INTENSIDAD QUE', 'IMPONE'],
+    ['AROMA QUE', 'ENVUELVE'],
+    ['PRESENCIA QUE', 'SE IMPONE'],
+    ['INTENSIDAD QUE', 'PERDURA'],
+    ['FRESCURA QUE', 'DESPIERTA'],
   ][i],
-  desc: p.description,
+  desc: [
+    'Café, cardamomo y dátiles envueltos en oud cálido.',
+    'Ámbar, especias y un fondo de oud intenso.',
+    'Oud, cuero y un toque de vainilla oscura.',
+    'Mandarina, notas cítricas y un aire limpio de verano.',
+  ][i],
   bg: ['#141414', '#EDE8DF', '#6F716F', '#233129'][i],
   text: ['#EDE8DF', '#141414', '#EDE8DF', '#EDE8DF'][i],
   textDim: [
@@ -52,10 +57,10 @@ const HERO_SLIDES = staticProducts.slice(0, 4).map((p, i) => ({
     'rgba(237,232,223,0.72)',
     'rgba(237,232,223,0.62)',
   ][i],
-  accent: ['#6F716F', '#233129', '#141414', '#EDE8DF'][i],
+  accent: ['#6F716F', '#22355c', '#141414', '#EDE8DF'][i],
   btnText: ['#EDE8DF', '#EDE8DF', '#EDE8DF', '#141414'][i],
   // el resplandor detrás del frasco usa el acento, no el fondo (si no, sería invisible)
-  color: ['#6F716F', '#233129', '#141414', '#EDE8DF'][i],
+  color: ['#6F716F', '#22355c', '#141414', '#EDE8DF'][i],
   image: [heroKhamrahImg, heroAsadZanzibarImg, heroAsadImg, heroMandarinSkyImg][i],
   // ajustes finos por foto: cada frasco tiene proporciones distintas
   imageScale: [0.8, 1, 1, 1][i],
@@ -86,37 +91,45 @@ const FEATURES = [
 
 function BottleScene({ slide }) {
   return (
+    // envoltorio que solo flota (sin overflow-hidden ni bordes): así el
+    // recorte de la tarjeta nunca vive en un elemento que también se anima,
+    // que es lo que le confunde el clipping a Chrome.
     <motion.div
-      className="relative w-full max-w-[260px] sm:max-w-[320px] md:max-w-[400px] aspect-[3/4] mx-auto rounded-2xl border flex items-center justify-center overflow-hidden"
-      style={{
-        borderColor: `${slide.text}26`,
-        backgroundColor: `${slide.accent}14`,
-        transition: 'border-color 1.4s ease, background-color 1.4s ease',
-      }}
+      className="w-full max-w-[260px] sm:max-w-[320px] md:max-w-[400px] mx-auto"
       animate={{ y: [0, -8, 0] }}
       transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
     >
-      {/* textura de fondo, sutil, igual que el cuadro placeholder */}
       <div
-        className="absolute inset-0 opacity-[0.06]"
+        className="relative w-full aspect-[3/4] rounded-2xl border flex items-center justify-center overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(${slide.text} 1px, transparent 1px), linear-gradient(90deg, ${slide.text} 1px, transparent 1px)`,
-          backgroundSize: '18px 18px',
+          clipPath: 'inset(0 round 16px)',
+          borderColor: `${slide.text}26`,
+          backgroundColor: `${slide.accent}14`,
+          transition: 'border-color 1.4s ease, background-color 1.4s ease',
         }}
-      />
-
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.img
-          key={slide.id}
-          src={slide.image}
-          alt={slide.name}
-          initial={{ opacity: 0, scale: (slide.imageScale ?? 1) * 0.92, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
-          animate={{ opacity: 1, scale: slide.imageScale ?? 1, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
-          exit={{ opacity: 0, scale: (slide.imageScale ?? 1) * 0.92, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-[286px] sm:w-[364px] md:w-[468px] max-w-none object-contain drop-shadow-[0_20px_28px_rgba(0,0,0,0.5)]"
+      >
+        {/* textura de fondo, sutil, igual que el cuadro placeholder */}
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage: `linear-gradient(${slide.text} 1px, transparent 1px), linear-gradient(90deg, ${slide.text} 1px, transparent 1px)`,
+            backgroundSize: '18px 18px',
+          }}
         />
-      </AnimatePresence>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.img
+            key={slide.id}
+            src={slide.image}
+            alt={slide.name}
+            initial={{ opacity: 0, scale: (slide.imageScale ?? 1) * 0.92, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
+            animate={{ opacity: 1, scale: slide.imageScale ?? 1, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
+            exit={{ opacity: 0, scale: (slide.imageScale ?? 1) * 0.92, x: slide.imageOffsetX ?? 0, y: slide.imageOffsetY ?? 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-[286px] sm:w-[364px] md:w-[468px] max-w-none object-contain drop-shadow-[0_20px_28px_rgba(0,0,0,0.5)]"
+          />
+        </AnimatePresence>
+      </div>
     </motion.div>
   )
 }
