@@ -7,6 +7,10 @@ import ComingSoon from './pages/ComingSoon.jsx'
 import { AuthProvider } from './admin/AuthContext.jsx'
 import RequireAuth from './admin/RequireAuth.jsx'
 
+// Prototipo de diseño en prueba — no forma parte de la tienda real, así que
+// se carga aparte y no pesa en el bundle principal.
+const HomeV2 = lazy(() => import('./pages/HomeV2.jsx'))
+
 // El panel administrativo solo lo carga quien entra a /admin — la tienda
 // pública no necesita descargarlo.
 const AdminLayout = lazy(() => import('./admin/AdminLayout.jsx'))
@@ -28,8 +32,15 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <Routes>
           <Route path="/" element={<App />} />
-          <Route path="/coleccion" element={<App scrollTo="catalogo" />} />
-          <Route path="/fragancias" element={<ComingSoon title="Fragancias" />} />
+          <Route path="/fragancias" element={<App view="fragancias" />} />
+          <Route
+            path="/home-prueba"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <HomeV2 />
+              </Suspense>
+            }
+          />
           <Route path="/nosotros" element={<ComingSoon title="Nosotros" />} />
           <Route path="/contacto" element={<ComingSoon title="Contacto" />} />
           <Route

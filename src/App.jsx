@@ -31,7 +31,6 @@ function effectivePrice(discounts, product) {
 const NAV_LINKS = [
   { label: 'Inicio', to: '/' },
   { label: 'Fragancias', to: '/fragancias' },
-  { label: 'Colección', to: '/coleccion' },
   { label: 'Nosotros', to: '/nosotros' },
   { label: 'Contacto', to: '/contacto' },
 ]
@@ -398,7 +397,7 @@ function CartDrawer({ items, discounts, subtotal, onClose, onRemove, onQty, onOr
   )
 }
 
-export default function App({ scrollTo } = {}) {
+export default function App({ scrollTo, view = 'home' } = {}) {
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
   const [category, setCategory] = useState('Todas')
@@ -489,12 +488,15 @@ export default function App({ scrollTo } = {}) {
       {/* intro cinematográfica: video con scroll, antes de todo lo demás.
           Mientras dura, el menú real está oculto y solo hay un botón de
           contacto flotante; el menú aparece al llegar al resto de la tienda. */}
-      <CinematicHero
-        whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}`}
-        logoSrc={logoImg}
-        skipIntro={introDone}
-        onDismiss={markIntroDone}
-      />
+      {view !== 'fragancias' && (
+        <CinematicHero
+          whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}`}
+          logoSrc={logoImg}
+          catalogHref="/fragancias"
+          skipIntro={introDone}
+          onDismiss={markIntroDone}
+        />
+      )}
 
       {/* navbar — sticky, siempre en el flujo justo al inicio de la tienda.
           Mientras la intro cinematográfica está activa, la tapa por completo
@@ -609,6 +611,8 @@ export default function App({ scrollTo } = {}) {
 
         {/* hero — ocupa como mínimo el resto de la pantalla (100vh - header),
             pero puede crecer si el contenido lo necesita (nunca se recorta) */}
+        {view !== 'fragancias' && (
+        <>
         <section
           className="relative overflow-x-clip border-b flex flex-col min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-3.5rem)]"
           style={{
@@ -850,7 +854,7 @@ export default function App({ scrollTo } = {}) {
           </div>
         </div>
 
-      {/* especificaciones */}
+      {/* fragancias — preview con fotos reales, enlaza al catálogo completo */}
       <section id="detalles" className="relative bg-[#0a0a0a] text-white border-b border-white/10 py-14 sm:py-20 lg:py-28">
           <div
             aria-hidden
@@ -867,49 +871,29 @@ export default function App({ scrollTo } = {}) {
               transition={{ duration: 0.6 }}
               className="text-center mb-10 sm:mb-14"
             >
-              <span className="uppercase tracking-[0.35em] text-xs text-orange-500">Ficha técnica</span>
-              <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black uppercase">Asad Elixir</h3>
+              <span className="uppercase tracking-[0.35em] text-xs text-orange-500">Nuestra selección</span>
+              <h3 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black uppercase">Fragancias MonacoSV</h3>
             </motion.div>
 
-            {/* pirámide olfativa */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-16">
-              {[
-                { label: 'Salida', notes: 'Bergamota, Azafrán, Manzana' },
-                { label: 'Corazón', notes: 'Oud, Rosa, Canela' },
-                { label: 'Fondo', notes: 'Ámbar, Almizcle, Sándalo' },
-              ].map((n, i) => (
+            {/* las 4 fragancias, con foto real de cada una */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {HERO_SLIDES.map((s, i) => (
                 <motion.div
-                  key={n.label}
+                  key={s.id}
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.4 }}
-                  transition={{ duration: 0.5, delay: i * 0.15 }}
-                  className="border border-white/10 p-5 sm:p-6 text-center hover:border-orange-500/40 transition-colors"
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="border border-white/10 p-4 sm:p-5 text-center hover:border-orange-500/40 transition-colors"
                 >
-                  <span className="text-orange-500 text-xs uppercase tracking-[0.3em]">{n.label}</span>
-                  <p className="mt-3 text-neutral-300 text-sm">{n.notes}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* specs grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/10 border border-white/10">
-              {[
-                ['Volumen', '100 ml'],
-                ['Concentración', 'Eau de Parfum'],
-                ['Duración', '8 - 10 horas'],
-                ['Género', 'Masculino'],
-              ].map(([label, value], i) => (
-                <motion.div
-                  key={label}
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true, amount: 0.4 }}
-                  transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
-                  className="bg-[#0a0a0a] p-4 sm:p-6 text-center"
-                >
-                  <p className="text-base sm:text-lg lg:text-xl font-bold text-white">{value}</p>
-                  <p className="mt-1 text-[10px] sm:text-[11px] uppercase tracking-widest text-neutral-500">{label}</p>
+                  <div
+                    className="aspect-square rounded-xl mb-4 flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: `${s.color}22` }}
+                  >
+                    <img src={s.image} alt={s.name} className="w-4/5 h-4/5 object-contain" />
+                  </div>
+                  <span className="text-orange-500 text-[10px] uppercase tracking-[0.3em]">{s.name}</span>
+                  <p className="mt-2 text-neutral-300 text-xs">{s.tagline.join(' ')}</p>
                 </motion.div>
               ))}
             </div>
@@ -921,19 +905,23 @@ export default function App({ scrollTo } = {}) {
               transition={{ duration: 0.6, delay: 0.7 }}
               className="mt-10 sm:mt-12 flex justify-center"
             >
-              <a
-                href="#catalogo"
+              <Link
+                to="/fragancias"
                 className="inline-flex items-center gap-2 border border-white/30 px-6 sm:px-7 py-3 sm:py-3.5 text-sm uppercase tracking-widest font-semibold hover:bg-white hover:text-neutral-900 transition-colors"
               >
-                Ver toda la colección
-              </a>
+                Ver todo el catálogo
+              </Link>
             </motion.div>
           </div>
         </section>
+        </>
+        )}
 
+      {view === 'fragancias' && (
+        <>
       <div className="text-center pt-14 px-4">
         <span className="uppercase tracking-[0.3em] text-xs text-neutral-400">Catálogo</span>
-        <h3 className="mt-2 text-3xl font-bold text-neutral-900">Colección Destacada</h3>
+        <h3 className="mt-2 text-3xl font-bold text-neutral-900">Fragancias</h3>
       </div>
 
       <div id="catalogo" className="max-w-6xl mx-auto px-4 pt-8 mb-6 flex flex-wrap gap-2 justify-center">
@@ -957,6 +945,8 @@ export default function App({ scrollTo } = {}) {
           <ProductCard key={product.id} product={product} onAdd={addToCart} index={index} discounts={discounts} />
         ))}
       </main>
+        </>
+      )}
 
       <footer className="border-t border-neutral-200 py-6 text-center text-xs text-neutral-400">
         MonacoSV · Pedidos coordinados por WhatsApp
