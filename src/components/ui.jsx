@@ -1,3 +1,4 @@
+import { formatPrice } from '../catalog'
 export const INK = '#0f1a2e'
 export const AMBER = '#c2610c'
 export const display = { fontFamily: "'Unbounded', system-ui, sans-serif" }
@@ -37,5 +38,18 @@ export function Icon({ d, size = 14 }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d={d} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+// Precio de venta con el precio normal tachado y el % de descuento (si lo hay).
+// El tachado hereda el color del contexto, así que sirve también sobre fondo oscuro.
+export function PriceTag({ price, original, className = '', priceClass = '', color = 'inherit', badge = true }) {
+  const off = original > price ? Math.round((1 - price / original) * 100) : 0
+  return (
+    <span className={`inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${className}`}>
+      <span className={priceClass} style={{ ...mono, color }}>{formatPrice(price)}</span>
+      {off > 0 && <span className="text-[0.75em] font-normal line-through opacity-60" style={mono}>{formatPrice(original)}</span>}
+      {off > 0 && badge && <span className="px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 text-[10px] font-bold no-underline" style={mono}>-{off}%</span>}
+    </span>
   )
 }

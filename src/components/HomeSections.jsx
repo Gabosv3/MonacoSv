@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { formatPrice, sizeLabel } from '../catalog'
+import { sizeLabel } from '../catalog'
 import { useSettings } from '../settings'
 import { BottlePlaceholder } from './HomeHero'
-import { Icon, ICONS, INK, AMBER, display, mono } from './ui'
+import { Icon, ICONS, INK, AMBER, display, mono, PriceTag } from './ui'
 
 const fade = {
   initial: { opacity: 0, y: 20 },
@@ -48,7 +48,10 @@ const makeFaq = (cfg) => [
 function FragranceCard({ f, priceOf, onAdd, index }) {
   const size = f.sizes.find((s) => s.ml === 10) ?? f.sizes[0]
   const out = size.product.stock != null && size.product.stock <= 0
-  const from = Math.min(...f.sizes.map((s) => priceOf(s.product)))
+  // presentación más barata: su precio final y su precio normal (tachado)
+  const best = f.sizes.reduce((a, s) => (priceOf(s.product) < priceOf(a.product) ? s : a))
+  const from = priceOf(best.product)
+  const fromOriginal = Number(best.product.price)
   return (
     <motion.article
       {...fade}
@@ -76,7 +79,7 @@ function FragranceCard({ f, priceOf, onAdd, index }) {
           </div>
         )}
         <div className="mt-auto pt-2 flex items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">Desde <span className="font-bold" style={{ ...mono, color: INK }}>{formatPrice(from)}</span></p>
+          <p className="text-sm text-slate-500">Desde <PriceTag price={from} original={fromOriginal} priceClass="font-bold" color={INK} /></p>
           <button
             onClick={() => onAdd(size.product)}
             disabled={out}
@@ -115,8 +118,10 @@ export default function HomeSections({ fragrances, women = [], priceOf, onAdd })
   const decant = fragrances[0]?.sizes.find((s) => s.ml <= 15)
   const bottle = fragrances[0]?.sizes.find((s) => s.ml > 15)
   const minOf = (pick) => {
-    const prices = fragrances.map((f) => f.sizes.find(pick)).filter(Boolean).map((s) => priceOf(s.product))
-    return prices.length ? Math.min(...prices) : null
+    const products = fragrances.map((f) => f.sizes.find(pick)).filter(Boolean).map((s) => s.product)
+    if (!products.length) return null
+    const best = products.reduce((a, p) => (priceOf(p) < priceOf(a) ? p : a))
+    return { price: priceOf(best), original: Number(best.price) }
   }
   const decantFrom = minOf((s) => s.ml <= 15)
   const bottleFrom = minOf((s) => s.ml > 15)
@@ -202,7 +207,7 @@ export default function HomeSections({ fragrances, women = [], priceOf, onAdd })
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400" style={mono}>{sizeLabel(decant.ml)}</p>
                 <p className="mt-3 text-5xl font-black" style={{ ...display, color: INK }}>{decant.ml} ml</p>
                 <p className="mt-4 text-slate-600 leading-relaxed">Decant con sello hermético. Ideal para probar la fragancia en tu piel durante varios días antes de decidirte por la botella.</p>
-                {decantFrom != null && <p className="mt-4 text-sm text-slate-500">Desde <strong style={{ ...mono, color: INK }}>{formatPrice(decantFrom)}</strong></p>}
+                {decantFrom != null && <p className="mt-4 text-sm text-slate-500">Desde <PriceTag price={decantFrom.price} original={decantFrom.original} priceClass="font-bold" color={INK} /></p>}
                 <Link to="/fragancias?tam=decant" className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl border text-[12px] font-bold uppercase tracking-wider" style={{ color: INK, borderColor: INK }}>
                   Ver decants
                 </Link>
@@ -211,7 +216,7 @@ export default function HomeSections({ fragrances, women = [], priceOf, onAdd })
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50" style={mono}>{sizeLabel(bottle.ml)}</p>
                 <p className="mt-3 text-5xl font-black" style={display}>{bottle.ml} ml</p>
                 <p className="mt-4 text-white/75 leading-relaxed">Frasco original sellado con batch code garantizado. La experiencia completa, lista para regalar o para tu colección.</p>
-                {bottleFrom != null && <p className="mt-4 text-sm text-white/60">Desde <strong style={{ ...mono, color: '#fff' }}>{formatPrice(bottleFrom)}</strong></p>}
+                {bottleFrom != null && <p className="mt-4 text-sm text-white/60">Desde <PriceTag price={bottleFrom.price} original={bottleFrom.original} priceClass="font-bold" color="#fff" /></p>}
                 <Link to="/fragancias?tam=botella" className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-[12px] font-bold uppercase tracking-wider" style={{ color: INK }}>
                   Ver botellas
                 </Link>

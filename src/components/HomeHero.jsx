@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatPrice, sizeLabel } from '../catalog'
 import { useSettings } from '../settings'
-import { Icon, ICONS, INK, AMBER, display, mono } from './ui'
+import { Icon, ICONS, INK, AMBER, display, mono, PriceTag } from './ui'
 
 // Sin foto, se muestra una silueta de frasco en vez de una imagen rota.
 export function BottlePlaceholder({ className = '' }) {
@@ -138,7 +138,7 @@ export default function HomeHero({ fragrances, state = 'ready', priceOf, onAdd }
                         {out ? 'Agotado' : sizeLabel(s.ml)}
                       </span>
                       <span className="block mt-1.5 text-lg font-black" style={display}>{s.ml ? `${s.ml} ml` : s.product.volume || 'Único'}</span>
-                      <span className="block mt-1 text-xs font-bold" style={{ ...mono, color: AMBER }}>{formatPrice(priceOf(s.product))}</span>
+                      <span className="block mt-1 text-xs font-bold" style={{ color: active ? '#fff' : AMBER }}><PriceTag price={priceOf(s.product)} original={Number(s.product.price)} badge={false} /></span>
                     </button>
                   )
                 })}

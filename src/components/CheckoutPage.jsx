@@ -9,7 +9,7 @@ import CouponBox from './CouponBox'
 import { couponAmount, effectivePrice } from '../pricing'
 import { buildOrderPdf, pdfFilename } from '../lib/orderPdf'
 import { downloadBlob } from '../lib/sendPdf'
-import { Icon, ICONS, INK, AMBER, display, mono } from './ui'
+import { Icon, ICONS, INK, AMBER, display, mono, PriceTag } from './ui'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const field = 'w-full h-12 rounded-xl border border-neutral-300 bg-white px-4 text-[15px] text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5'
@@ -483,7 +483,7 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
                 </span>
                 <span className="flex-1 min-w-0 text-sm">
                   <span className="block font-medium text-slate-900 truncate">{product.name}{product.volume ? ` · ${product.volume}` : ''}</span>
-                  <span className="text-xs text-slate-500">{qty} × {formatPrice(effectivePrice(discounts, product))}</span>
+                  <span className="text-xs text-slate-500">{qty} × <PriceTag price={effectivePrice(discounts, product)} original={Number(product.price)} badge={false} /></span>
                 </span>
                 <strong className="text-sm" style={mono}>{formatPrice(effectivePrice(discounts, product) * qty)}</strong>
               </li>

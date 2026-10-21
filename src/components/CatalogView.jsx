@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { formatPrice, sizeLabel } from '../catalog'
-import { Icon, ICONS, INK, AMBER, display, mono } from './ui'
+import { Icon, ICONS, INK, AMBER, display, mono, PriceTag } from './ui'
 import { BottlePlaceholder } from './HomeHero'
 
 const SORTS = [
@@ -100,10 +100,7 @@ function Card({ f, sizes, priceOf, onAdd, index }) {
         )}
 
         <div className="mt-auto pt-1 flex items-center justify-between gap-3">
-          <p className="flex items-baseline gap-2">
-            <span className="text-xl font-black" style={{ ...mono, color: INK }}>{formatPrice(price)}</span>
-            {original > price && <span className="text-xs text-slate-400 line-through">{formatPrice(original)}</span>}
-          </p>
+          <PriceTag price={price} original={original} priceClass="text-xl font-black" color={INK} />
           <button
             onClick={() => onAdd(size.product)}
             disabled={out}

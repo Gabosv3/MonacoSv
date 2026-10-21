@@ -4,6 +4,7 @@ import { useSettings } from '../settings'
 import { useAuth } from '../admin/AuthContext'
 import { useAccount } from './AccountModal'
 import CouponBox from './CouponBox'
+import { PriceTag } from './ui'
 import { couponAmount, effectivePrice } from '../pricing'
 
 // Carrito: solo los productos, el cupón y el total. El pago se hace aparte,
@@ -41,7 +42,7 @@ export default function CartDrawer({ items, discounts, subtotal, coupon, onCoupo
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-neutral-900 truncate">{product.name}{product.volume ? ` · ${product.volume}` : ''}</p>
-                <p className="text-xs text-neutral-500">{formatPrice(effectivePrice(discounts, product))} c/u</p>
+                <p className="text-xs text-neutral-500"><PriceTag price={effectivePrice(discounts, product)} original={Number(product.price)} badge={false} /> c/u</p>
               </div>
               <input
                 type="number"
