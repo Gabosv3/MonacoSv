@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import logoImg from '../assets/logo.png'
+import logoImg from '../assets/logo.webp'
 
-const WHATSAPP_NUMBER = '573000000000'
+import { useSettings } from '../settings'
 
 export default function ComingSoon({ title }) {
+  const { wa } = useSettings()
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center px-4 text-center gap-6">
       <Link to="/" className="flex items-center gap-2">
@@ -29,7 +30,7 @@ export default function ComingSoon({ title }) {
           Volver al inicio
         </Link>
         <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          href={wa()}
           target="_blank"
           rel="noopener noreferrer"
           className="border border-white/30 text-sm px-5 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"

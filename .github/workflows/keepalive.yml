@@ -1,0 +1,20 @@
+# Evita que Supabase pause el proyecto por inactividad (plan Free: se pausa a la semana sin uso).
+# Hace una consulta pequeña dos veces por semana. Solo funciona si el código está en GitHub.
+#
+# Configuración (una vez): en el repositorio → Settings → Secrets and variables → Actions:
+#   SUPABASE_URL       https://xxxx.supabase.co
+#   SUPABASE_ANON_KEY  la clave pública (publishable/anon)
+name: Supabase keep-alive
+on:
+  schedule:
+    - cron: '17 9 * * 1,4'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta ligera
+        run: |
+          curl -fsS "${{ secrets.SUPABASE_URL }}/rest/v1/store_settings?select=key&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" > /dev/null
