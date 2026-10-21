@@ -8,7 +8,7 @@ import { useAccount } from './AccountModal'
 import CouponBox from './CouponBox'
 import { couponAmount, effectivePrice } from '../pricing'
 import { buildOrderPdf, pdfFilename } from '../lib/orderPdf'
-import { deliverPdf, downloadBlob } from '../lib/sendPdf'
+import { downloadBlob } from '../lib/sendPdf'
 import { Icon, ICONS, INK, AMBER, display, mono } from './ui'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -92,14 +92,42 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
     carrier: delivery === 'envio' ? carrier?.name : undefined,
   })
 
-  const sendPdf = async (data, blob) => {
-    const text =
-      data.kind === 'cotizacion'
-        ? `Hola, te envío mi cotización${data.number ? ` COT-${data.number}` : ''} en PDF.`
-        : `Hola, te envío mi pedido${data.number ? ` #${data.number}` : ''} en PDF.`
-    const status = await deliverPdf({ blob, filename: pdfFilename(data), text, chatUrl: wa(text) })
-    if (status === 'downloaded') setSendInfo('Descargamos el PDF y abrimos el chat de WhatsApp: adjúntalo en la conversación y envíalo.')
-    else if (status === 'shared') setSendInfo(`Elige el chat de ${cfg.store_name} para enviar el PDF.`)
+  // Mensaje de WhatsApp (texto). Los datos ya quedan guardados en el sistema,
+  // así que no se adjunta ningún archivo.
+  const messageText = (data) => {
+    const money = (n) => formatPrice(n)
+    const isQuote = data.kind === 'cotizacion'
+    const lines = data.items.map((i, n) => `${n + 1}. *${i.name}* — Cant: ${i.qty} — ${money(i.unit)} c/u — Subtotal: ${money(i.unit * i.qty)}`)
+    const c = data.customer
+    const head = isQuote
+      ? `¡Hola! Me gustaría cotizar los siguientes productos${data.number ? ` (COT-${data.number})` : ''}:`
+      : data.number
+        ? `¡Hola! Acabo de hacer mi pedido #${data.number}:`
+        : '¡Hola! Quiero hacer el siguiente pedido:'
+    const delivery = isQuote
+      ? []
+      : [c.delivery === 'retiro' ? 'Entrega: retiro en tienda' : `Entrega: ${[c.municipality, c.department].filter(Boolean).join(', ')}${c.address ? ` — ${c.address}` : ''}`]
+    return [
+      head,
+      '',
+      ...lines,
+      '',
+      ...(data.discount > 0 ? [`Cupón ${data.couponCode ?? ''}: -${money(data.discount)}`] : []),
+      ...(data.shipping != null ? [`Envío${data.carrier ? ` (${data.carrier})` : ''}: ${data.shipping > 0 ? money(data.shipping) : 'Gratis'}`] : []),
+      `*Total: ${money(data.total + (data.shipping || 0))}*`,
+      ...(delivery.length ? ['', ...delivery] : []),
+      '',
+      isQuote ? '¿Están disponibles?' : '¿Me confirman el pago y la entrega?',
+      ...(c.name ? ['', `Soy ${c.name}${c.phone ? ` · ${c.phone}` : ''}.`] : []),
+    ].join('\n')
+  }
+
+  // Abre WhatsApp directo con el mensaje. `win` es la pestaña abierta dentro del clic
+  // (así el navegador no la bloquea aunque haya pasado tiempo guardando el pedido).
+  const openWhatsApp = (data, win) => {
+    const url = wa(messageText(data))
+    if (win) win.location.href = url
+    else window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const validate = () => {
@@ -131,6 +159,7 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
 
   const confirmOrder = async (thenWhatsApp) => {
     if (!items.length || busy || !validate()) return
+    const win = thenWhatsApp ? window.open('', '_blank') : null
     setBusy(thenWhatsApp ? 'orderWa' : 'order')
     setFailedDraft(false)
     setSendInfo('')
@@ -181,16 +210,20 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
         })
         data = localData('pedido', sale?.order_number ?? null)
       }
-      const blob = await buildOrderPdf(data, store)
       await rememberData()
-      setResult({ data, blob })
+      setResult({ data })
       onOrderPlaced?.()
       window.scrollTo({ top: 0 })
-      if (thenWhatsApp) await sendPdf(data, blob)
+      if (thenWhatsApp) openWhatsApp(data, win)
     } catch (err) {
+      if (thenWhatsApp) {
+        // el pedido no quedó en el sistema, pero el mensaje se envía igual y nosotros lo registramos
+        await sendDraft(win, true)
+        return
+      }
       setFormError(
         /row-level security|violates|permission denied/i.test(err.message)
-          ? 'No pudimos registrar tu pedido en el sistema. Puedes enviarlo igual por WhatsApp en PDF.'
+          ? 'No pudimos registrar tu pedido en el sistema. Puedes enviarlo igual por WhatsApp.'
           : err.message || 'No pudimos registrar tu pedido.'
       )
       setFailedDraft(true)
@@ -208,6 +241,7 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
     setFormError('')
     setBusy('quote')
     setSendInfo('')
+    const win = window.open('', '_blank')
     let number = null
     try {
       number = await requestQuote({
@@ -223,27 +257,31 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
     }
     try {
       const data = localData('cotizacion', number)
-      const blob = await buildOrderPdf(data, store)
-      setResult({ data, blob, keepCart: true })
+      setResult({ data, keepCart: true })
       window.scrollTo({ top: 0 })
-      await sendPdf(data, blob)
+      openWhatsApp(data, win)
     } catch (err) {
-      setFormError(err.message || 'No se pudo preparar el PDF.')
+      win?.close()
+      setFormError(err.message || 'No se pudo abrir WhatsApp.')
     } finally {
       setBusy(null)
     }
   }
 
-  const sendDraft = async () => {
-    if (!items.length || busy) return
+  const sendDraft = async (win, force) => {
+    if (!items.length || (busy && !force)) {
+      win?.close()
+      return
+    }
     setBusy('draft')
     try {
       const data = localData('pedido', null)
-      const blob = await buildOrderPdf(data, store)
-      setResult({ data, blob, draft: true, keepCart: true })
-      await sendPdf(data, blob)
+      setResult({ data, draft: true, keepCart: true })
+      window.scrollTo({ top: 0 })
+      openWhatsApp(data, win)
     } catch (err) {
-      setFormError(err.message || 'No se pudo preparar el PDF.')
+      win?.close()
+      setFormError(err.message || 'No se pudo abrir WhatsApp.')
     } finally {
       setBusy(null)
     }
@@ -269,7 +307,7 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
 
   // ---------- pedido registrado ----------
   if (result) {
-    const { data, blob, draft, keepCart } = result
+    const { data, draft, keepCart } = result
     const isQuote = data.kind === 'cotizacion'
     return (
       <div className={wrap}>
@@ -277,10 +315,10 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
           <div className="text-center">
             <span className="mx-auto w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-3xl" aria-hidden>✓</span>
             <h1 className="mt-5 text-2xl font-black uppercase leading-tight" style={{ ...display, color: INK }}>
-              {draft ? 'Solicitud lista para enviar' : isQuote ? `Cotización${data.number ? ` COT-${data.number}` : ''} registrada` : `¡Pedido${data.number ? ` #${data.number}` : ''} recibido!`}
+              {draft ? 'Pedido enviado por WhatsApp' : isQuote ? `Cotización${data.number ? ` COT-${data.number}` : ''} registrada` : `¡Pedido${data.number ? ` #${data.number}` : ''} recibido!`}
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              {draft ? 'No quedó registrado en el sistema: envíalo por WhatsApp para que lo atendamos.' : isQuote ? 'Te respondemos por WhatsApp con la disponibilidad.' : 'Te escribiremos por WhatsApp para confirmar el pago y la entrega.'}
+              {draft ? 'Aún no quedó en el sistema, pero te abrimos WhatsApp con tu pedido para que lo atendamos y lo registremos nosotros.' : isQuote ? 'Se abrió WhatsApp con tu cotización. Te respondemos con la disponibilidad.' : 'Te escribiremos por WhatsApp para confirmar el pago y la entrega.'}
             </p>
           </div>
 
@@ -302,10 +340,10 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
           )}
 
           <div className="mt-7 space-y-3">
-            <button onClick={() => sendPdf(data, blob)} className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors">
-              <Icon d={ICONS.chat} size={17} /> Enviar PDF por WhatsApp
+            <button onClick={() => openWhatsApp(data)} className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors">
+              <Icon d={ICONS.chat} size={17} /> Abrir WhatsApp
             </button>
-            <button onClick={() => downloadBlob(blob, pdfFilename(data))} className="w-full h-11 rounded-xl border border-neutral-300 text-sm font-medium text-slate-700 hover:bg-neutral-50 transition-colors">Descargar PDF</button>
+            <button onClick={async () => downloadBlob(await buildOrderPdf(data, store), pdfFilename(data))} className="w-full h-11 rounded-xl border border-neutral-300 text-sm font-medium text-slate-700 hover:bg-neutral-50 transition-colors">Descargar PDF</button>
             {sendInfo && <p role="status" className="text-xs text-green-700 text-center leading-relaxed">{sendInfo}</p>}
           </div>
 
@@ -478,7 +516,7 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
           {formError && (
             <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
               {formError}
-              {failedDraft && <button onClick={sendDraft} disabled={!!busy} className="mt-2 block font-semibold underline">Enviar igual por WhatsApp (PDF)</button>}
+              {failedDraft && <button onClick={() => sendDraft()} disabled={!!busy} className="mt-2 block font-semibold underline">Enviar igual por WhatsApp</button>}
             </div>
           )}
 
@@ -487,10 +525,10 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
               {busy === 'order' ? 'Registrando tu pedido…' : 'Confirmar pedido'}
             </button>
             <button onClick={() => confirmOrder(true)} disabled={!!busy} className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border border-green-600 text-green-700 text-sm font-semibold hover:bg-green-50 disabled:opacity-60 transition-colors">
-              <Icon d={ICONS.chat} size={16} /> {busy === 'orderWa' ? 'Registrando…' : 'Confirmar y enviar PDF por WhatsApp'}
+              <Icon d={ICONS.chat} size={16} /> {busy === 'orderWa' ? 'Registrando…' : 'Confirmar y avisar por WhatsApp'}
             </button>
             <button onClick={quote} disabled={!!busy} className="w-full h-11 rounded-xl border border-neutral-300 text-slate-700 text-sm font-medium hover:bg-neutral-50 disabled:opacity-60 transition-colors">
-              {busy === 'quote' ? 'Preparando…' : 'Solo cotizar (PDF por WhatsApp)'}
+              {busy === 'quote' ? 'Preparando…' : 'Solo cotizar por WhatsApp'}
             </button>
           </div>
         </aside>

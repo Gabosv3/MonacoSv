@@ -16,10 +16,19 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
-export async function deliverPdf({ blob, filename, text, chatUrl }) {
+// El menú de compartir solo se usa en celulares y tabletas. En computador (Windows/Mac)
+// abre una lista de aplicaciones que no es lo que se busca: ahí se descarga el PDF
+// y se abre directamente el chat de WhatsApp.
+const isPhoneOrTablet = () => {
+  const ua = navigator.userAgent
+  return /Android|iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+}
+
+export async function deliverPdf({ blob, filename, text, chatUrl, win }) {
   const file = new File([blob], filename, { type: 'application/pdf' })
-  if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+  if (isPhoneOrTablet() && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
     try {
+      win?.close()
       await navigator.share({ files: [file], title: filename, text })
       return 'shared'
     } catch (err) {
@@ -28,6 +37,8 @@ export async function deliverPdf({ blob, filename, text, chatUrl }) {
     }
   }
   downloadBlob(blob, filename)
-  window.open(chatUrl, '_blank', 'noopener,noreferrer')
+  // `win` es la pestaña abierta dentro del clic (así el navegador no la bloquea)
+  if (win) win.location.href = chatUrl
+  else window.open(chatUrl, '_blank', 'noopener,noreferrer')
   return 'downloaded'
 }

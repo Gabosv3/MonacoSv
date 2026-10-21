@@ -8,13 +8,16 @@ const INK = [15, 26, 46]
 const AMBER = [194, 97, 12]
 const GRAY = [100, 116, 139]
 const LINE = [226, 232, 240]
+const SOFT = [248, 250, 252]
+const GREEN = [21, 128, 61]
+const WHITE = [255, 255, 255]
 
 // El logo se reduce antes de incrustarlo: así el PDF pesa unos pocos KB.
 async function logoDataUrl() {
   try {
     const blob = await (await fetch(logoImg)).blob()
     const bitmap = await createImageBitmap(blob)
-    const size = 160
+    const size = 200
     const canvas = document.createElement('canvas')
     canvas.width = size
     canvas.height = Math.round((bitmap.height / bitmap.width) * size)
@@ -28,6 +31,20 @@ async function logoDataUrl() {
 const dateText = (d) =>
   new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'long', year: 'numeric' })
 
+// "+503 7000-0000" a partir de un número local de 8 dígitos o internacional
+function phoneText(raw) {
+  const digits = String(raw ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+  const full = digits.length === 8 ? `503${digits}` : digits
+  return full.startsWith('503') && full.length === 11 ? `+503 ${full.slice(3, 7)}-${full.slice(7)}` : `+${full}`
+}
+
+// "Asad Elixir (100 ml)" → { title: 'Asad Elixir', size: '100 ml' }
+const splitName = (name) => {
+  const m = String(name).match(/^(.*?)\s*\(([^)]+)\)\s*$/)
+  return m ? { title: m[1], size: m[2] } : { title: String(name), size: '' }
+}
+
 // data: { kind: 'pedido' | 'cotizacion', number, createdAt, customer: {...},
 //         items: [{ name, qty, unit }], subtotal, discount, couponCode, total, shipping?, carrier? }
 // store: { name, city, whatsapp, email }
@@ -35,151 +52,191 @@ export async function buildOrderPdf(data, store) {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true })
   const W = 210
-  const M = 14
+  const H = 297
+  const M = 15
+  const CW = W - M * 2
   const isQuote = data.kind === 'cotizacion'
   const label = isQuote ? 'COTIZACIÓN' : data.number ? 'PEDIDO' : 'SOLICITUD DE PEDIDO'
   const code = isQuote ? (data.number ? `COT-${data.number}` : '') : data.number ? `#${data.number}` : ''
-
-  // franja superior
-  doc.setFillColor(...INK)
-  doc.rect(0, 0, W, 36, 'F')
-  const logo = await logoDataUrl()
-  if (logo) {
-    doc.setFillColor(255, 255, 255)
-    doc.roundedRect(M, 8, 20, 20, 3, 3, 'F')
-    doc.addImage(logo.url, 'PNG', M + 1.5, 9.5, 17, 17 * logo.ratio)
-  }
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(20)
-  doc.text(String(store.name).toUpperCase(), logo ? M + 26 : M, 19)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(180, 190, 205)
-  doc.text(store.city ? `${store.city}, El Salvador` : 'El Salvador', logo ? M + 26 : M, 25)
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
-  doc.text(`${label} ${code}`.trim(), W - M, 17, { align: 'right' })
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(180, 190, 205)
-  doc.text(dateText(data.createdAt), W - M, 24, { align: 'right' })
-
-  // cliente
-  let y = 48
-  const section = (title) => {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(...AMBER)
-    doc.text(title, M, y)
-    y += 5
-  }
-  const field = (k, v) => {
-    if (!v) return
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(10)
-    doc.setTextColor(...GRAY)
-    doc.text(`${k}:`, M, y)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(...INK)
-    const lines = doc.splitTextToSize(String(v), W - M * 2 - 30)
-    doc.text(lines, M + 30, y)
-    y += 5.5 * lines.length
-  }
-
   const c = data.customer
-  section('CLIENTE')
-  field('Nombre', c.name)
-  field('Teléfono', c.phone)
-  if (!isQuote) {
-    field('Entrega', c.delivery === 'retiro' ? 'Retiro en tienda' : `Envío a ${[c.municipality, c.department].filter(Boolean).join(', ')}`)
-    if (c.delivery !== 'retiro') field('Dirección', c.address)
-  }
-  field('Nota', c.notes)
-  y += 4
 
-  // tabla de productos
-  const col = { name: M + 3, qty: 128, unit: 160, sub: W - M - 3 }
+  const color = (v) => doc.setTextColor(v[0], v[1], v[2])
+  const fill = (v) => doc.setFillColor(v[0], v[1], v[2])
+  const stroke = (v) => doc.setDrawColor(v[0], v[1], v[2])
+  const text = (s, x, y, o = {}) => {
+    doc.setFont('helvetica', o.bold ? 'bold' : 'normal')
+    doc.setFontSize(o.size ?? 10)
+    color(o.color ?? INK)
+    doc.text(s, x, y, { align: o.align ?? 'left' })
+  }
+  const wrap = (s, width, size, bold = false) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal')
+    doc.setFontSize(size)
+    return doc.splitTextToSize(String(s), width)
+  }
+
+  // ---------- cabecera ----------
+  fill(INK)
+  doc.rect(0, 0, W, 3, 'F')
+  fill(AMBER)
+  doc.rect(0, 0, 46, 3, 'F')
+
+  const logo = await logoDataUrl()
+  let nameX = M
+  if (logo) {
+    stroke(LINE)
+    fill(WHITE)
+    doc.roundedRect(M, 12, 22, 22, 4, 4, 'FD')
+    const lw = 17
+    doc.addImage(logo.url, 'PNG', M + (22 - lw) / 2, 12 + (22 - lw * logo.ratio) / 2, lw, lw * logo.ratio)
+    nameX = M + 28
+  }
+  text(String(store.name).toUpperCase(), nameX, 22.5, { bold: true, size: 21 })
+  text(store.city ? `Masculine fragrance studio  ·  ${store.city}, El Salvador` : 'Masculine fragrance studio', nameX, 29, { size: 8.5, color: GRAY })
+
+  text(label, W - M, 17, { bold: true, size: 9, color: AMBER, align: 'right' })
+  if (code) text(code, W - M, 27, { bold: true, size: 22, align: 'right' })
+  text(dateText(data.createdAt), W - M, 34, { size: 9, color: GRAY, align: 'right' })
+
+  stroke(LINE)
+  doc.line(M, 42, W - M, 42)
+
+  // ---------- tarjetas de datos ----------
+  const card = (x, y, w, title, rows) => {
+    const pad = 5
+    const inner = w - pad * 2
+    const laid = rows.filter(([, v]) => v).map(([k, v]) => ({ k, lines: wrap(v, inner, 10, true) }))
+    const h = 12 + laid.reduce((n, r) => n + 3.6 + 4.6 * r.lines.length + 1.8, 0) + 1
+    fill(SOFT)
+    stroke(LINE)
+    doc.roundedRect(x, y, w, h, 3, 3, 'FD')
+    text(title, x + pad, y + 7, { bold: true, size: 7.5, color: AMBER })
+    let cy = y + 12.5
+    laid.forEach((r) => {
+      text(r.k.toUpperCase(), x + pad, cy, { bold: true, size: 6.5, color: GRAY })
+      r.lines.forEach((ln, i) => text(ln, x + pad, cy + 4.4 + i * 4.6, { bold: true, size: 10 }))
+      cy += 3.6 + 4.6 * r.lines.length + 1.8
+    })
+    return h
+  }
+
+  const gap = 6
+  const cardW = (CW - gap) / 2
+  let y = 50
+  const left = [['Nombre', c.name], ['Teléfono', c.phone]]
+  const right = isQuote
+    ? [['Solicitud', 'Cotización por WhatsApp'], ['Vigencia', 'Precios sujetos a disponibilidad']]
+    : c.delivery === 'retiro'
+      ? [['Entrega', 'Retiro en tienda'], ['Punto de retiro', store.city ? `${store.city}, El Salvador` : '']]
+      : [
+          ['Entrega', 'Envío a domicilio'],
+          ['Destino', [c.municipality, c.department].filter(Boolean).join(', ')],
+          ['Dirección', c.address],
+          ['Paquetera', data.carrier],
+        ]
+  // misma altura en las dos tarjetas
+  const probe = (rows) => 12 + rows.filter(([, v]) => v).reduce((n, [, v]) => n + 3.6 + 4.6 * wrap(v, cardW - 10, 10, true).length + 1.8, 0) + 1
+  const hh = Math.max(probe(left), probe(right))
+  const drawCard = (x, title, rows) => {
+    const h = card(x, y, cardW, title, rows)
+    return h
+  }
+  drawCard(M, 'CLIENTE', left)
+  drawCard(M + cardW + gap, isQuote ? 'DETALLE' : 'ENTREGA', right)
+  y += hh + 6
+
+  if (c.notes) {
+    const lines = wrap(c.notes, CW - 10, 9.5)
+    const h = 10 + lines.length * 4.4
+    fill(SOFT)
+    stroke(LINE)
+    doc.roundedRect(M, y, CW, h, 3, 3, 'FD')
+    text('NOTA DEL CLIENTE', M + 5, y + 6.5, { bold: true, size: 7, color: AMBER })
+    lines.forEach((ln, i) => text(ln, M + 5, y + 11.5 + i * 4.4, { size: 9.5 }))
+    y += h + 6
+  }
+
+  // ---------- tabla de productos ----------
+  const col = { name: M + 5, qty: 128, unit: 162, sub: W - M - 5 }
   const head = () => {
-    doc.setFillColor(241, 245, 249)
-    doc.rect(M, y, W - M * 2, 8, 'F')
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(...GRAY)
-    doc.text('PRODUCTO', col.name, y + 5.3)
-    doc.text('CANT.', col.qty, y + 5.3, { align: 'center' })
-    doc.text('PRECIO', col.unit, y + 5.3, { align: 'right' })
-    doc.text('SUBTOTAL', col.sub, y + 5.3, { align: 'right' })
-    y += 8
+    fill(INK)
+    doc.roundedRect(M, y, CW, 9, 2, 2, 'F')
+    text('PRODUCTO', col.name, y + 5.9, { bold: true, size: 7.5, color: WHITE })
+    text('CANT.', col.qty, y + 5.9, { bold: true, size: 7.5, color: WHITE, align: 'center' })
+    text('PRECIO', col.unit, y + 5.9, { bold: true, size: 7.5, color: WHITE, align: 'right' })
+    text('SUBTOTAL', col.sub, y + 5.9, { bold: true, size: 7.5, color: WHITE, align: 'right' })
+    y += 11
   }
   head()
-  data.items.forEach((it) => {
-    const lines = doc.splitTextToSize(String(it.name), 100)
-    const h = Math.max(9, 4.5 * lines.length + 4)
+  data.items.forEach((it, i) => {
+    const { title, size } = splitName(it.name)
+    const lines = wrap(title, 88, 10.5, true)
+    const h = Math.max(12, lines.length * 4.8 + (size ? 4.6 : 0) + 5)
     if (y + h > 262) {
       doc.addPage()
-      y = 20
+      y = 18
       head()
     }
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    doc.setTextColor(...INK)
-    doc.text(lines, col.name, y + 6)
-    doc.text(String(it.qty), col.qty, y + 6, { align: 'center' })
-    doc.text(formatPrice(it.unit), col.unit, y + 6, { align: 'right' })
-    doc.setFont('helvetica', 'bold')
-    doc.text(formatPrice(it.unit * it.qty), col.sub, y + 6, { align: 'right' })
+    if (i % 2 === 0) {
+      fill(SOFT)
+      doc.rect(M, y - 1, CW, h, 'F')
+    }
+    lines.forEach((ln, n) => text(ln, col.name, y + 5.5 + n * 4.8, { bold: true, size: 10.5 }))
+    if (size) text(size, col.name, y + 5.5 + lines.length * 4.8 - 0.6, { size: 8.5, color: GRAY })
+    text(String(it.qty), col.qty, y + 6, { size: 10.5, align: 'center' })
+    text(formatPrice(it.unit), col.unit, y + 6, { size: 10.5, align: 'right', color: GRAY })
+    text(formatPrice(it.unit * it.qty), col.sub, y + 6, { bold: true, size: 10.5, align: 'right' })
     y += h
-    doc.setDrawColor(...LINE)
-    doc.line(M, y, W - M, y)
   })
+  stroke(LINE)
+  doc.line(M, y - 1, W - M, y - 1)
 
-  // totales
-  if (y > 240) {
+  // ---------- totales ----------
+  const totalsH = 22 + (data.discount > 0 ? 6 : 0) + (data.shipping != null ? 6 : 0) + 4
+  if (y + totalsH + 24 > 270) {
     doc.addPage()
-    y = 20
+    y = 18
   }
-  y += 8
-  const row = (k, v, bold) => {
-    doc.setFont('helvetica', bold ? 'bold' : 'normal')
-    doc.setFontSize(bold ? 13 : 10)
-    doc.setTextColor(...(bold ? INK : GRAY))
-    doc.text(k, 130, y)
-    doc.setTextColor(...(bold ? AMBER : INK))
-    doc.text(v, col.sub, y, { align: 'right' })
-    y += bold ? 8 : 6
+  y += 7
+  const tx = W - M - 84
+  const row = (k, v, o = {}) => {
+    text(k, tx, y, { size: 10, color: o.color ?? GRAY })
+    text(v, W - M, y, { size: 10, bold: true, color: o.color ?? INK, align: 'right' })
+    y += 6
   }
-  row('Subtotal', formatPrice(data.subtotal))
-  if (data.discount > 0) row(data.couponCode ? `Cupón ${data.couponCode}` : 'Descuento', `-${formatPrice(data.discount)}`)
-  if (data.shipping != null) row(data.carrier ? `Envío (${data.carrier})` : 'Envío', data.shipping > 0 ? formatPrice(data.shipping) : 'Gratis')
-  doc.setDrawColor(...LINE)
-  doc.line(130, y - 2, W - M, y - 2)
-  y += 3
-  row('TOTAL', formatPrice(data.total + (data.shipping || 0)), true)
-
-  // nota final
-  y += 6
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(...GRAY)
-  const note = isQuote
+  const nextSteps = isQuote
     ? 'Esta cotización es informativa: los precios y la disponibilidad se confirman al hacer el pedido.'
     : data.number
       ? 'Pedido recibido. Te escribiremos por WhatsApp para confirmar el pago y la entrega.'
       : 'Solicitud de pedido. Te escribiremos por WhatsApp para confirmarla.'
-  doc.text(doc.splitTextToSize(note, W - M * 2), M, y)
+  const noteLines = wrap(nextSteps, 88, 9)
+  const startY = y
+  text('¿CÓMO SEGUIMOS?', M, y, { bold: true, size: 7.5, color: AMBER })
+  noteLines.forEach((ln, i) => text(ln, M, y + 6 + i * 4.4, { size: 9, color: GRAY }))
+  const wa = phoneText(store.whatsapp)
+  if (wa) text(`Escríbenos al WhatsApp ${wa}`, M, y + 6 + noteLines.length * 4.4 + 3, { bold: true, size: 9 })
 
-  // pie
-  doc.setDrawColor(...LINE)
-  doc.line(M, 280, W - M, 280)
-  doc.setFontSize(8)
-  doc.text(
-    [store.name, store.city && `${store.city}, El Salvador`, store.whatsapp && `WhatsApp +${String(store.whatsapp).replace(/\D/g, '')}`, store.email].filter(Boolean).join('  ·  '),
-    W / 2,
-    286,
-    { align: 'center' }
-  )
+  y = startY
+  row('Subtotal', formatPrice(data.subtotal))
+  if (data.discount > 0) row(data.couponCode ? `Cupón ${data.couponCode}` : 'Descuento', `-${formatPrice(data.discount)}`, { color: GREEN })
+  if (data.shipping != null) row(data.carrier ? `Envío · ${data.carrier}` : 'Envío', data.shipping > 0 ? formatPrice(data.shipping) : 'Gratis')
+  y += 2
+  fill(INK)
+  doc.roundedRect(tx - 4, y, 88, 15, 3, 3, 'F')
+  text('TOTAL', tx + 2, y + 9.4, { bold: true, size: 9, color: [203, 213, 225] })
+  text(formatPrice(data.total + (data.shipping || 0)), W - M - 4, y + 10.2, { bold: true, size: 17, color: WHITE, align: 'right' })
+
+  // ---------- pie en todas las páginas ----------
+  const pages = doc.getNumberOfPages()
+  const contact = [store.city && `${store.city}, El Salvador`, wa && `WhatsApp ${wa}`, store.email].filter(Boolean).join('   ·   ')
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p)
+    fill(INK)
+    doc.rect(0, H - 14, W, 14, 'F')
+    text(String(store.name).toUpperCase(), M, H - 6, { bold: true, size: 8.5, color: WHITE })
+    text(contact, W / 2 + 8, H - 6, { size: 7.5, color: [203, 213, 225], align: 'center' })
+    if (pages > 1) text(`${p}/${pages}`, W - M, H - 6, { size: 7.5, color: [203, 213, 225], align: 'right' })
+  }
 
   return doc.output('blob')
 }
