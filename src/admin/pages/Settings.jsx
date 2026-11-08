@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { listSettings, saveSettings } from '../api'
+import { listSettings, saveSettings, uploadProductImage } from '../api'
 import { useAuth } from '../AuthContext'
-import { SETTING_DEFAULTS, useSettings } from '../../settings'
+import { SETTING_DEFAULTS, useSettings, useLogo } from '../../settings'
 import { INK, AMBER, mono } from '../../components/ui'
 import { Alert, Btn, Field, inputCls, textareaCls } from '../kit'
 
@@ -12,6 +12,8 @@ const GROUPS = [
     text: 'Datos básicos que aparecen en toda la página.',
     fields: [
       { key: 'store_name', label: 'Nombre de la tienda' },
+      { key: 'logo_url', label: 'Logo', type: 'image', hint: 'Se usa en el encabezado, el pie, el panel, el PDF y como ícono de la pestaña. Mejor cuadrado y con fondo transparente (PNG o WebP).' },
+      { key: 'tagline', label: 'Eslogan', hint: 'Frase corta bajo el nombre en el encabezado y en el PDF.' },
       { key: 'whatsapp', label: 'WhatsApp de pedidos', hint: 'Con código de país y sin +. Ej. 50370001111. Es el número al que llegan los pedidos y cotizaciones.' },
       { key: 'city', label: 'Ciudad base', hint: 'Desde dónde despachas. Ej. Usulután.' },
       { key: 'contact_email', label: 'Correo de contacto', type: 'email' },
@@ -51,6 +53,46 @@ const friendly = (e) =>
   /schema cache|does not exist/i.test(e.message)
     ? 'Falta crear la tabla de ajustes. Ejecuta supabase/accounts_and_settings.sql en el SQL Editor de Supabase y recarga.'
     : e.message
+
+// Subir el logo desde el equipo: se guarda en Storage y su dirección queda en los ajustes.
+function LogoField({ value, onChange, onError }) {
+  const { cfg } = useSettings()
+  const logo = useLogo()
+  const [busy, setBusy] = useState(false)
+  const shown = value || logo
+  const pick = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setBusy(true)
+    onError('')
+    try {
+      onChange(await uploadProductImage(file, 'branding'))
+    } catch (err) {
+      onError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="flex items-center gap-4">
+      <div className="w-20 h-20 rounded-2xl border border-neutral-200 bg-neutral-50 flex items-center justify-center overflow-hidden">
+        <img src={shown} alt={cfg.store_name} className="max-w-full max-h-full object-contain" />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <label className={`inline-flex items-center h-10 px-4 rounded-xl border border-neutral-300 text-sm font-medium text-slate-700 hover:bg-neutral-50 cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
+          {busy ? 'Subiendo…' : 'Subir logo'}
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pick} />
+        </label>
+        {value && (
+          <button type="button" onClick={() => onChange('')} className="h-10 px-4 rounded-xl text-sm text-slate-500 hover:text-slate-800">
+            Usar el logo original
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function Settings() {
   const { can } = useAuth()
@@ -109,7 +151,9 @@ export default function Settings() {
             <div className="mt-5 grid gap-4">
               {g.fields.map((f) => (
                 <Field key={f.key} label={f.label} hint={f.hint}>
-                  {f.type === 'textarea' ? (
+                  {f.type === 'image' ? (
+                    <LogoField value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} onError={setError} />
+                  ) : f.type === 'textarea' ? (
                     <textarea rows={f.rows} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className={textareaCls} />
                   ) : (
                     <input

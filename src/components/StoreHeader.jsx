@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import logoImg from '../assets/logo.webp'
-import { useSettings } from '../settings'
+import { useSettings, useLogo } from '../settings'
 import { useAuth } from '../admin/AuthContext'
 import { useAccount } from './AccountModal'
 import { BottlePlaceholder } from './HomeHero'
@@ -93,6 +92,7 @@ function SearchBox({ fragrances, onDone, autoFocus }) {
 
 export default function StoreHeader({ itemCount, onCart, fragrances = [], featured = fragrances }) {
   const { cfg, wa } = useSettings()
+  const logoImg = useLogo()
   const { session, customer, access, logout } = useAuth()
   const { openAccount } = useAccount()
   const [accountOpen, setAccountOpen] = useState(false)
@@ -146,11 +146,11 @@ export default function StoreHeader({ itemCount, onCart, fragrances = [], featur
       <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
         {/* fila 1: logo, buscador grande, acciones */}
         <div className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-12 h-16 lg:h-20 flex items-center gap-3 lg:gap-12">
-          <Link to="/" className="flex items-center gap-3 flex-shrink-0" aria-label="MonacoSV, inicio">
+          <Link to="/" className="flex items-center gap-3 flex-shrink-0" aria-label={`${cfg.store_name}, inicio`}>
             <img src={logoImg} alt="" className="w-10 h-10 lg:w-11 lg:h-11 object-contain rounded-lg" />
             <span className="leading-none">
-              <span className="block text-lg sm:text-xl lg:text-2xl font-black tracking-tight" style={{ ...display, color: INK }}>MONACOSV</span>
-              <span className="hidden lg:block mt-1.5 text-[8px] tracking-[0.3em] uppercase text-slate-400" style={mono}>Masculine fragrance studio</span>
+              <span className="block text-lg sm:text-xl lg:text-2xl font-black tracking-tight" style={{ ...display, color: INK }}>{cfg.store_name.toUpperCase()}</span>
+              <span className="hidden lg:block mt-1.5 text-[8px] tracking-[0.3em] uppercase text-slate-400" style={mono}>{cfg.tagline}</span>
             </span>
           </Link>
 

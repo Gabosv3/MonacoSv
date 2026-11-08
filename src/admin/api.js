@@ -474,13 +474,13 @@ async function prepareImage(file) {
 }
 
 // Sube la foto y devuelve su URL pública
-export async function uploadProductImage(file) {
+export async function uploadProductImage(file, folder = 'products') {
   if (!ALLOWED_IMAGES.includes(file.type)) throw new Error('Usa una imagen PNG, JPG, WebP o GIF.')
   if (file.size > MAX_IMAGE_BYTES * 3) throw new Error('La imagen es demasiado grande (máximo 15 MB).')
   const body = await prepareImage(file)
   if (body.size > MAX_IMAGE_BYTES) throw new Error('La imagen pesa más de 5 MB. Redúcela e inténtalo de nuevo.')
   const ext = body.type === 'image/webp' ? 'webp' : file.type.split('/')[1].replace('jpeg', 'jpg')
-  const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
   const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(path, body, {
     contentType: body.type || file.type,
     cacheControl: '31536000',

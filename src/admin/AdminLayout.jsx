@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
+import { useSettings, useLogo } from '../settings'
 import { listProducts, listSales } from './api'
 import { NoAccess } from './RequireAuth'
-import logoImg from '../assets/logo.webp'
 import { Icon, ICONS, INK, AMBER, display, mono } from '../components/ui'
 
 const NAV = [
@@ -243,6 +243,8 @@ function TopBar({ title, email, onLogout }) {
 // solo el panel móvil los necesita aquí.
 function SidebarContent({ email, onNavigate, onLogout, showAccount = false }) {
   const { can, access } = useAuth()
+  const { cfg } = useSettings()
+  const logoImg = useLogo()
   const initial = (email ?? '?').charAt(0).toUpperCase()
   const roleLabel = access?.super ? 'Super administrador' : access?.roles?.map((r) => r.label).join(', ') || 'Administrador'
   return (
@@ -250,7 +252,7 @@ function SidebarContent({ email, onNavigate, onLogout, showAccount = false }) {
       <Link to="/admin" onClick={onNavigate} className="flex items-center gap-3 px-5 h-[72px] border-b border-white/10 flex-shrink-0">
         <img src={logoImg} alt="" className="w-9 h-9 object-contain rounded-lg" />
         <span className="leading-none">
-          <span className="block text-lg font-black tracking-tight" style={display}>MONACOSV</span>
+          <span className="block text-lg font-black tracking-tight" style={display}>{cfg.store_name.toUpperCase()}</span>
           <span className="block mt-1 text-[9px] uppercase tracking-[0.3em] text-white/45" style={mono}>Panel admin</span>
         </span>
       </Link>
@@ -316,6 +318,8 @@ function SidebarContent({ email, onNavigate, onLogout, showAccount = false }) {
 
 export default function AdminLayout() {
   const { logout, session, access, accessLoading } = useAuth()
+  const { cfg } = useSettings()
+  const logoImg = useLogo()
   const { pathname } = useLocation()
   const noAccess = !accessLoading && access && !access.legacy && (access.active === false || (!access.super && !(access.permissions ?? []).length))
   const [open, setOpen] = useState(false)
@@ -335,7 +339,7 @@ export default function AdminLayout() {
       <header className="lg:hidden sticky top-0 z-30 h-16 px-4 flex items-center justify-between text-white" style={{ backgroundColor: INK }}>
         <Link to="/admin" className="flex items-center gap-2.5">
           <img src={logoImg} alt="" className="w-8 h-8 object-contain rounded-lg" />
-          <span className="text-base font-black tracking-tight" style={display}>MONACOSV</span>
+          <span className="text-base font-black tracking-tight" style={display}>{cfg.store_name.toUpperCase()}</span>
         </Link>
         <button onClick={() => setOpen(true)} aria-label="Abrir menú" className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10">
           <Icon d={ICONS.menu} size={22} />

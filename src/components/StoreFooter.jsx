@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom'
-import logoImg from '../assets/logo.webp'
-import { useSettings } from '../settings'
+import { useSettings, useLogo } from '../settings'
 import { INK, display, mono } from './ui'
 
 const col = 'text-sm text-slate-500 hover:text-slate-900 transition-colors'
 
 export default function StoreFooter() {
   const { cfg, wa } = useSettings()
+  const logoImg = useLogo()
   const socials = [['Instagram', cfg.instagram], ['Facebook', cfg.facebook], ['TikTok', cfg.tiktok]].filter(([, url]) => url)
   return (
     <footer className="bg-white border-t border-neutral-200">
@@ -31,7 +31,7 @@ export default function StoreFooter() {
         </div>
 
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400" style={mono}>MonacoSV</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400" style={mono}>{cfg.store_name}</p>
           <ul className="mt-4 space-y-2.5">
             <li><Link to="/nosotros" className={col}>Nosotros</Link></li>
             <li><Link to="/contacto" className={col}>Contacto</Link></li>
@@ -52,7 +52,7 @@ export default function StoreFooter() {
         </div>
       </div>
       <div className="border-t border-neutral-200 py-5 text-center text-xs text-slate-400">
-        © {new Date().getFullYear()} MonacoSV · Todos los derechos reservados
+        © {new Date().getFullYear()} {cfg.store_name} · Todos los derechos reservados
       </div>
     </footer>
   )

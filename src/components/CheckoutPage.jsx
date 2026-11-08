@@ -61,7 +61,7 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
   // envío gratis desde el mínimo; si no, el precio de la paquetera elegida
   const shipping = delivery === 'envio' && carrier ? (freeMin > 0 && total >= freeMin ? 0 : Number(carrier.price) || 0) : 0
   const grandTotal = total + shipping
-  const store = { name: cfg.store_name, city: cfg.city, whatsapp: cfg.whatsapp, email: cfg.contact_email }
+  const store = { name: cfg.store_name, logo: cfg.logo_url, tagline: cfg.tagline, city: cfg.city, whatsapp: cfg.whatsapp, email: cfg.contact_email }
 
   const customerData = () => ({
     name: name.trim(),

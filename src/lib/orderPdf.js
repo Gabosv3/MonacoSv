@@ -13,9 +13,9 @@ const GREEN = [21, 128, 61]
 const WHITE = [255, 255, 255]
 
 // El logo se reduce antes de incrustarlo: así el PDF pesa unos pocos KB.
-async function logoDataUrl() {
+async function logoDataUrl(src) {
   try {
-    const blob = await (await fetch(logoImg)).blob()
+    const blob = await (await fetch(src || logoImg)).blob()
     const bitmap = await createImageBitmap(blob)
     const size = 200
     const canvas = document.createElement('canvas')
@@ -81,7 +81,7 @@ export async function buildOrderPdf(data, store) {
   fill(AMBER)
   doc.rect(0, 0, 46, 3, 'F')
 
-  const logo = await logoDataUrl()
+  const logo = await logoDataUrl(store.logo)
   let nameX = M
   if (logo) {
     stroke(LINE)
@@ -92,7 +92,7 @@ export async function buildOrderPdf(data, store) {
     nameX = M + 28
   }
   text(String(store.name).toUpperCase(), nameX, 22.5, { bold: true, size: 21 })
-  text(store.city ? `Masculine fragrance studio  ·  ${store.city}, El Salvador` : 'Masculine fragrance studio', nameX, 29, { size: 8.5, color: GRAY })
+  text(store.city ? `${store.tagline}  ·  ${store.city}, El Salvador` : store.tagline, nameX, 29, { size: 8.5, color: GRAY })
 
   text(label, W - M, 17, { bold: true, size: 9, color: AMBER, align: 'right' })
   if (code) text(code, W - M, 27, { bold: true, size: 22, align: 'right' })

@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { readCache, writeCache } from './lib/cache'
+import defaultLogo from './assets/logo.webp'
 
 // Valores de respaldo: se usan hasta que carguen los ajustes de Supabase (tabla
 // store_settings) o si esa tabla todavía no existe. Se editan desde el panel.
 export const SETTING_DEFAULTS = {
   store_name: 'MonacoSV',
+  tagline: 'Masculine fragrance studio',
+  logo_url: '', // vacío = logo que viene con el sitio
   whatsapp: '50300000000',
   city: 'Usulután',
   contact_email: '',
@@ -49,6 +52,20 @@ export function SettingsProvider({ children }) {
 
   useEffect(reload, [reload])
 
+  // título de la pestaña del navegador
+  useEffect(() => {
+    if (cfg.store_name) document.title = cfg.store_name
+  }, [cfg.store_name])
+
+  // el logo de Ajustes también es el ícono de la pestaña
+  useEffect(() => {
+    if (!cfg.logo_url) return
+    document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((l) => {
+      l.href = cfg.logo_url
+      l.removeAttribute('type')
+    })
+  }, [cfg.logo_url])
+
   // enlace de WhatsApp (con mensaje opcional); los números de 8 dígitos son de El Salvador
   const wa = useCallback(
     (text) => {
@@ -64,3 +81,9 @@ export function SettingsProvider({ children }) {
 }
 
 export const useSettings = () => useContext(SettingsContext)
+
+// Logo de la tienda: el que se sube en Ajustes o, si no hay, el incluido en el sitio.
+export function useLogo() {
+  const { cfg } = useContext(SettingsContext)
+  return cfg.logo_url || defaultLogo
+}

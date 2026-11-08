@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom'
-import logoImg from '../assets/logo.webp'
 
-import { useSettings } from '../settings'
+import { useSettings, useLogo } from '../settings'
 
 export default function ComingSoon({ title }) {
-  const { wa } = useSettings()
+  const { wa, cfg } = useSettings()
+  const logoImg = useLogo()
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center px-4 text-center gap-6">
       <Link to="/" className="flex items-center gap-2">
-        <img src={logoImg} alt="MonacoSV" className="w-9 h-9 object-contain rounded-full" />
+        <img src={logoImg} alt={cfg.store_name} className="w-9 h-9 object-contain rounded-full" />
         <span className="text-xl font-extrabold tracking-tight">
           Monaco<span className="text-amber-400">SV</span>
         </span>

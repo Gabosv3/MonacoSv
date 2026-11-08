@@ -1,12 +1,11 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
+import { useLogo, useSettings } from './settings.jsx'
 import { useNavigate } from 'react-router-dom'
 import { buildFragrances, pickFeatured, mlOf } from './catalog'
 import { effectivePrice } from './pricing'
-import { useSettings } from './settings'
 import AccountPage from './components/AccountPage'
 import { fetchActiveCategories, fetchActiveDiscounts, fetchActiveProducts } from './admin/api'
 import CinematicHero from './CinematicHero'
-import logoImg from './assets/logo.webp'
 import StoreHeader from './components/StoreHeader'
 import HomeHero from './components/HomeHero'
 import HomeSections from './components/HomeSections'
@@ -20,6 +19,7 @@ const CART_KEY = 'monacosv_cart'
 
 export default function App({ view = 'home' } = {}) {
   const { cfg, wa } = useSettings()
+  const logoImg = useLogo()
   const navigate = useNavigate()
   // El carrito se guarda en el navegador: sobrevive a recargar la página y al
   // inicio de sesión con Google (que sale y vuelve a la tienda).

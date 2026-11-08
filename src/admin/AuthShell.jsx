@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import logoImg from '../assets/logo.webp'
 import bottleImg from '../assets/hero-khamrah-cut.webp'
+import { useSettings, useLogo } from '../settings'
 import { INK, AMBER, display, mono } from '../components/ui'
 
 export const field =
@@ -34,6 +34,8 @@ export { INK, AMBER, display, mono }
 // Marco común de las pantallas de acceso: panel de marca a la izquierda
 // (solo escritorio) y el contenido a la derecha.
 export default function AuthShell({ kicker, title, subtitle, children, footer }) {
+  const { cfg } = useSettings()
+  const logoImg = useLogo()
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <aside
@@ -45,7 +47,7 @@ export default function AuthShell({ kicker, title, subtitle, children, footer })
       >
         <div className="flex items-center gap-3">
           <img src={logoImg} alt="" className="w-11 h-11 object-contain rounded-lg" />
-          <span className="text-2xl font-black tracking-tight" style={display}>MONACOSV</span>
+          <span className="text-2xl font-black tracking-tight" style={display}>{cfg.store_name.toUpperCase()}</span>
         </div>
 
         <img
@@ -70,7 +72,7 @@ export default function AuthShell({ kicker, title, subtitle, children, footer })
         <div className="w-full max-w-[400px] mx-auto">
           <Link to="/" className="lg:hidden flex items-center gap-3 mb-10">
             <img src={logoImg} alt="" className="w-10 h-10 object-contain rounded-lg" />
-            <span className="text-xl font-black tracking-tight" style={{ ...display, color: INK }}>MONACOSV</span>
+            <span className="text-xl font-black tracking-tight" style={{ ...display, color: INK }}>{cfg.store_name.toUpperCase()}</span>
           </Link>
 
           <p className="text-[11px] font-bold uppercase tracking-[0.25em]" style={{ ...mono, color: AMBER }}>{kicker}</p>

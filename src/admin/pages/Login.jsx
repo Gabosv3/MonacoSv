@@ -1,3 +1,4 @@
+import { useSettings } from '../../settings'
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
@@ -15,6 +16,7 @@ function friendlyError(err, fallback) {
 }
 
 export default function Login() {
+  const { cfg } = useSettings()
   const { session, login, requestPasswordReset } = useAuth()
   const navigate = useNavigate()
   const [mode, setMode] = useState('login') // 'login' | 'forgot'
@@ -170,7 +172,7 @@ export default function Login() {
       </form>
 
       <p className="mt-6 text-xs text-slate-400 leading-relaxed">
-        Acceso solo para el equipo de MonacoSV. Si no tienes cuenta, pídesela a quien administra la tienda.
+        Acceso solo para el equipo de {cfg.store_name}. Si no tienes cuenta, pídesela a quien administra la tienda.
       </p>
     </AuthShell>
   )

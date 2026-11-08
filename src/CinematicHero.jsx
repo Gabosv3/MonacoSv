@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import './CinematicHero.css'
+import { useSettings } from './settings'
 
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)'
 
 const BANDS = [
-  { start: 0.0, end: 0.2, kicker: 'MonacoSV', headline: 'La noche empieza aquí.', entrance: 'entrance-drift', align: 'left' },
+  { start: 0.0, end: 0.2, kicker: '{brand}', headline: 'La noche empieza aquí.', entrance: 'entrance-drift', align: 'left' },
   { start: 0.2, end: 0.42, headline: 'Una esencia lo cambia todo.', entrance: 'entrance-blur', align: 'right' },
   { start: 0.42, end: 0.62, headline: 'La presencia habla primero.', entrance: '', align: 'left' },
   { start: 0.62, end: 0.84, headline: 'Lo demás sucede después.', entrance: 'entrance-punch', align: 'center-top' },
-  { start: 0.84, end: 1.0, kicker: 'MonacoSV · Club de Nuit Intense', headline: 'La noche empieza aquí.', align: 'settle', settle: true },
+  { start: 0.84, end: 1.0, kicker: '{brand} · Club de Nuit Intense', headline: 'La noche empieza aquí.', align: 'settle', settle: true },
 ]
 
 function rng(seed) {
@@ -45,6 +46,7 @@ function splitHeadline(el) {
 }
 
 export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#catalogo', onDismiss, skipIntro = false }) {
+  const brand = useSettings().cfg.store_name
   const [active, setActive] = useState(!skipIntro)
   const [dismissing, setDismissing] = useState(false)
   const [ended, setEnded] = useState(false)
@@ -156,7 +158,7 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
     return (
       <div className="cine-hero cine-hero-static-only">
         <div className="cine-static-hero" style={{ backgroundImage: "url('/hero/hero-ending.jpg')" }}>
-          <p className="cine-kicker">MonacoSV</p>
+          <p className="cine-kicker">{brand}</p>
           <h1 className="cine-headline">La noche empieza aquí.</h1>
           <p className="cine-sub">Fragancias de larga duración y proyección real.</p>
           <a className="cine-cta" href={catalogHref}>Ver la colección</a>
@@ -172,8 +174,8 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
       <div className={`cine-hero-stage cine-intro-lock${videoReady ? ' cine-video-ready' : ''}${videoFailed ? ' cine-video-failed' : ''}${dismissing ? ' cine-dismissing' : ''}`}>
         <div className="cine-nav">
           <div className="cine-nav-brand">
-            {logoSrc && <img src={logoSrc} alt="MonacoSV" />}
-            <span>MonacoSV</span>
+            {logoSrc && <img src={logoSrc} alt={brand} />}
+            <span>{brand}</span>
           </div>
           <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="cine-nav-cta">
             Escríbenos
@@ -210,7 +212,7 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
               ref={(el) => (bandRefs.current[i] = el)}
             >
               <div className="cine-band-inner">
-                {b.kicker && <p className="cine-kicker">{b.kicker}</p>}
+                {b.kicker && <p className="cine-kicker">{b.kicker.replace('{brand}', brand)}</p>}
                 {!b.settle && (
                   <h2 className={`cine-headline ${b.entrance || ''}`} data-split>
                     {b.headline}

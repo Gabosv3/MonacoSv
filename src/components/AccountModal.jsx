@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../admin/AuthContext'
-import { useSettings } from '../settings'
-import logoImg from '../assets/logo.webp'
+import { useSettings, useLogo } from '../settings'
 import { INK, AMBER, display, mono } from './ui'
 
 const AccountContext = createContext({ openAccount: () => {} })
@@ -35,6 +34,7 @@ function AccountModal({ open, initialTab, next, onClose }) {
   const navigate = useNavigate()
   const { login, signUpCustomer, signInWithGoogle, requestPasswordReset, session } = useAuth()
   const { cfg } = useSettings()
+  const logoImg = useLogo()
   const [tab, setTab] = useState(initialTab)
   const [forgot, setForgot] = useState(false)
   const [name, setName] = useState('')
