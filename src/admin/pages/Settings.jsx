@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listSettings, saveSettings, uploadProductImage } from '../api'
+import { listSettings, saveSettings, uploadProductImage, uploadIntroVideo } from '../api'
 import { useAuth } from '../AuthContext'
 import { SETTING_DEFAULTS, useSettings, useLogo } from '../../settings'
 import { INK, AMBER, mono } from '../../components/ui'
@@ -17,6 +17,18 @@ const GROUPS = [
       { key: 'whatsapp', label: 'WhatsApp de pedidos', hint: 'Con código de país y sin +. Ej. 50370001111. Es el número al que llegan los pedidos y cotizaciones.' },
       { key: 'city', label: 'Ciudad base', hint: 'Desde dónde despachas. Ej. Usulután.' },
       { key: 'contact_email', label: 'Correo de contacto', type: 'email' },
+    ],
+  },
+  {
+    title: 'Intro de inicio',
+    text: 'El video con frases que se ve al entrar a la página. Funciona en computador y en celular.',
+    fields: [
+      { key: 'intro_enabled', label: 'Mostrar la intro', type: 'select', options: [['1', 'Sí, mostrar el video al entrar'], ['0', 'No, ir directo a la tienda']] },
+      { key: 'intro_video_url', label: 'Video', type: 'video', hint: 'MP4 o WebM, mejor vertical u horizontal corto de 8 a 15 segundos y menos de 8 MB (máximo 30 MB). Sin audio.' },
+      { key: 'intro_poster_url', label: 'Imagen de respaldo', type: 'image', maxDim: 1920, fallback: '/hero/hero-poster.jpg', hint: 'Se ve mientras carga el video y si el celular no puede reproducirlo. Misma proporción que el video.' },
+      { key: 'intro_phrases', label: 'Frases del video', type: 'textarea', rows: 5, hint: 'Una frase por línea (hasta 8). Aparecen en orden mientras corre el video.' },
+      { key: 'intro_end_kicker', label: 'Etiqueta final', hint: 'Sale junto al nombre de la tienda al terminar el video.' },
+      { key: 'intro_button', label: 'Texto del botón final', hint: 'Ej. Ver tienda.' },
     ],
   },
   {
@@ -54,12 +66,14 @@ const friendly = (e) =>
     ? 'Falta crear la tabla de ajustes. Ejecuta supabase/accounts_and_settings.sql en el SQL Editor de Supabase y recarga.'
     : e.message
 
-// Subir el logo desde el equipo: se guarda en Storage y su dirección queda en los ajustes.
-function LogoField({ value, onChange, onError }) {
+// Subir imágenes o el video desde el equipo: se guardan en Storage y su dirección queda en los ajustes.
+function MediaField({ field, value, onChange, onError }) {
   const { cfg } = useSettings()
   const logo = useLogo()
   const [busy, setBusy] = useState(false)
-  const shown = value || logo
+  const isVideo = field.type === 'video'
+  const fallback = field.key === 'logo_url' ? logo : field.fallback
+  const shown = value || fallback
   const pick = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -67,7 +81,7 @@ function LogoField({ value, onChange, onError }) {
     setBusy(true)
     onError('')
     try {
-      onChange(await uploadProductImage(file, 'branding'))
+      onChange(isVideo ? await uploadIntroVideo(file) : await uploadProductImage(file, 'branding', field.maxDim ?? 1000))
     } catch (err) {
       onError(err.message)
     } finally {
@@ -76,17 +90,21 @@ function LogoField({ value, onChange, onError }) {
   }
   return (
     <div className="flex items-center gap-4">
-      <div className="w-20 h-20 rounded-2xl border border-neutral-200 bg-neutral-50 flex items-center justify-center overflow-hidden">
-        <img src={shown} alt={cfg.store_name} className="max-w-full max-h-full object-contain" />
+      <div className={`${isVideo ? 'w-32 h-20' : 'w-20 h-20'} rounded-2xl border border-neutral-200 bg-neutral-50 flex items-center justify-center overflow-hidden flex-shrink-0`}>
+        {isVideo ? (
+          <video src={shown || '/hero/hero-scrub.mp4'} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+        ) : shown ? (
+          <img src={shown} alt={cfg.store_name} className="max-w-full max-h-full object-contain" />
+        ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
         <label className={`inline-flex items-center h-10 px-4 rounded-xl border border-neutral-300 text-sm font-medium text-slate-700 hover:bg-neutral-50 cursor-pointer ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
-          {busy ? 'Subiendo…' : 'Subir logo'}
-          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pick} />
+          {busy ? 'Subiendo…' : isVideo ? 'Subir video' : 'Subir imagen'}
+          <input type="file" accept={isVideo ? 'video/mp4,video/webm' : 'image/png,image/jpeg,image/webp'} className="hidden" onChange={pick} />
         </label>
         {value && (
           <button type="button" onClick={() => onChange('')} className="h-10 px-4 rounded-xl text-sm text-slate-500 hover:text-slate-800">
-            Usar el logo original
+            Usar el original
           </button>
         )}
       </div>
@@ -151,8 +169,12 @@ export default function Settings() {
             <div className="mt-5 grid gap-4">
               {g.fields.map((f) => (
                 <Field key={f.key} label={f.label} hint={f.hint}>
-                  {f.type === 'image' ? (
-                    <LogoField value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} onError={setError} />
+                  {f.type === 'image' || f.type === 'video' ? (
+                    <MediaField field={f} value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} onError={setError} />
+                  ) : f.type === 'select' ? (
+                    <select value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className={inputCls}>
+                      {f.options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+                    </select>
                   ) : f.type === 'textarea' ? (
                     <textarea rows={f.rows} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className={textareaCls} />
                   ) : (

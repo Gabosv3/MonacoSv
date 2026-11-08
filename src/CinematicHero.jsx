@@ -1,16 +1,31 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './CinematicHero.css'
 import { useSettings } from './settings'
 
 const REDUCED_MOTION_MQ = '(prefers-reduced-motion: reduce)'
 
-const BANDS = [
-  { start: 0.0, end: 0.2, kicker: '{brand}', headline: 'La noche empieza aquí.', entrance: 'entrance-drift', align: 'left' },
-  { start: 0.2, end: 0.42, headline: 'Una esencia lo cambia todo.', entrance: 'entrance-blur', align: 'right' },
-  { start: 0.42, end: 0.62, headline: 'La presencia habla primero.', entrance: '', align: 'left' },
-  { start: 0.62, end: 0.84, headline: 'Lo demás sucede después.', entrance: 'entrance-punch', align: 'center-top' },
-  { start: 0.84, end: 1.0, kicker: '{brand} · Club de Nuit Intense', headline: 'La noche empieza aquí.', align: 'settle', settle: true },
-]
+const ALIGNS = ['left', 'right', 'left', 'center-top']
+const ENTRANCES = ['entrance-drift', 'entrance-blur', '', 'entrance-punch']
+const DEFAULT_VIDEO = '/hero/hero-scrub.mp4'
+const DEFAULT_POSTER = '/hero/hero-poster.jpg'
+const DEFAULT_ENDING = '/hero/hero-ending.jpg'
+
+// Las frases (una por línea en Ajustes) se reparten a lo largo del video; la
+// última franja es el cierre con el botón.
+function buildBands(phrases, endKicker) {
+  const list = phrases.length ? phrases : ['']
+  const span = 0.84 / list.length
+  const bands = list.map((headline, i) => ({
+    start: i * span,
+    end: (i + 1) * span,
+    kicker: i === 0 ? '{brand}' : undefined,
+    headline,
+    entrance: ENTRANCES[i % ENTRANCES.length],
+    align: ALIGNS[i % ALIGNS.length],
+  }))
+  bands.push({ start: 0.84, end: 1.0, kicker: `{brand} · ${endKicker}`, align: 'settle', settle: true })
+  return bands
+}
 
 function rng(seed) {
   let s = seed >>> 0
@@ -46,22 +61,30 @@ function splitHeadline(el) {
 }
 
 export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#catalogo', onDismiss, skipIntro = false }) {
-  const brand = useSettings().cfg.store_name
+  const { cfg } = useSettings()
+  const brand = cfg.store_name
+  const phrases = useMemo(() => String(cfg.intro_phrases).split('\n').map((p) => p.trim()).filter(Boolean).slice(0, 8), [cfg.intro_phrases])
+  const bands = useMemo(() => buildBands(phrases, cfg.intro_end_kicker), [phrases, cfg.intro_end_kicker])
+  const bandsKey = phrases.join('|')
+  const videoUrl = cfg.intro_video_url || DEFAULT_VIDEO
+  const poster = cfg.intro_poster_url || DEFAULT_POSTER
+  const introOff = cfg.intro_enabled === '0'
   const [active, setActive] = useState(!skipIntro)
   const [dismissing, setDismissing] = useState(false)
   const [ended, setEnded] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
   const [videoFailed, setVideoFailed] = useState(false)
-  const [isStatic, setIsStatic] = useState(false)
+  const [reduced, setReduced] = useState(false)
+  const isStatic = reduced || introOff
 
   const videoRef = useRef(null)
   const ringRef = useRef(null)
   const bandRefs = useRef([])
 
-  // Estático (sin video) en celular, pantallas angostas o "reducir movimiento".
+  // Estático (sin video) solo si la persona pidió "reducir movimiento" o la intro está apagada.
   useEffect(() => {
-    const mq = matchMedia('(max-width: 720px), ' + REDUCED_MOTION_MQ)
-    const apply = () => setIsStatic(mq.matches)
+    const mq = matchMedia(REDUCED_MOTION_MQ)
+    const apply = () => setReduced(mq.matches)
     apply()
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
@@ -84,17 +107,16 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
   useEffect(() => {
     bandRefs.current.forEach((b) => {
       if (!b) return
-      const headline = b.querySelector('.cine-headline[data-split]')
+      const headline = b?.querySelector('.cine-headline[data-split]')
       if (headline) splitHeadline(headline)
     })
-  }, [])
+  }, [bandsKey, isStatic, active])
 
   useEffect(() => {
     if (isStatic || !active) return
     const video = videoRef.current
     if (!video) return
     const ring = ringRef.current
-    const VIDEO_URL = '/hero/hero-scrub.mp4'
     let rafId = null
 
     function updateCaptions() {
@@ -102,7 +124,7 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
       const p = Math.min(1, video.currentTime / video.duration)
       bandRefs.current.forEach((b, i) => {
         if (!b) return
-        const meta = BANDS[i]
+        const meta = bands[i]
         const a = meta.start, z = meta.end
         const f = Math.min(0.02, (z - a) / 3)
         const smoothstep = (x, e0, e1) => {
@@ -111,7 +133,7 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
         }
         let op
         if (i === 0) op = 1 - smoothstep(p, z - f, z)
-        else if (i === BANDS.length - 1) op = smoothstep(p, a, a + f)
+        else if (i === bands.length - 1) op = smoothstep(p, a, a + f)
         else op = smoothstep(p, a, a + f) * (1 - smoothstep(p, z - f, z))
         const ramp = Math.min(0.025, (z - a) * 0.35)
         const k = Math.min(1, Math.max(0, (p - a) / ramp))
@@ -125,49 +147,66 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
       if (!video.ended) rafId = requestAnimationFrame(tick)
     }
 
-    function onCanPlay() {
-      setVideoReady(true)
-      video.play().catch(() => {})
-      rafId = requestAnimationFrame(tick)
-    }
-    function onEnded() {
+    // Deja a la vista el cierre con el botón (video terminado o que no se pudo reproducir)
+    function showEnding() {
       setEnded(true)
       bandRefs.current.forEach((b, i) => {
         if (!b) return
-        b.style.opacity = i === BANDS.length - 1 ? '1' : '0'
+        b.style.opacity = i === bands.length - 1 ? '1' : '0'
         b.style.setProperty('--k', '1')
       })
     }
-    function onError() { setVideoFailed(true) }
+    function fail() {
+      setVideoFailed(true)
+      showEnding()
+    }
+    function onCanPlay() {
+      setVideoReady(true)
+      // algunos celulares (ahorro de batería) bloquean el autoplay: no se deja a la persona atrapada
+      video.play().catch(fail)
+      rafId = requestAnimationFrame(tick)
+    }
+
+    // si el video no carga en 10 s (señal débil), se muestra el botón igual
+    const timeout = setTimeout(() => { if (!video.duration) fail() }, 10000)
 
     video.addEventListener('canplay', onCanPlay, { once: true })
-    video.addEventListener('ended', onEnded)
-    video.addEventListener('error', onError)
-    video.src = VIDEO_URL
+    video.addEventListener('ended', showEnding)
+    video.addEventListener('error', fail)
+    video.src = videoUrl
     video.load()
 
     return () => {
+      clearTimeout(timeout)
       if (rafId) cancelAnimationFrame(rafId)
       video.removeEventListener('canplay', onCanPlay)
-      video.removeEventListener('ended', onEnded)
-      video.removeEventListener('error', onError)
+      video.removeEventListener('ended', showEnding)
+      video.removeEventListener('error', fail)
     }
-  }, [isStatic])
+  }, [isStatic, bands, videoUrl])
 
   if (isStatic) {
     return (
       <div className="cine-hero cine-hero-static-only">
-        <div className="cine-static-hero" style={{ backgroundImage: "url('/hero/hero-ending.jpg')" }}>
+        <div className="cine-static-hero" style={{ backgroundImage: `url('${cfg.intro_poster_url || DEFAULT_ENDING}')` }}>
           <p className="cine-kicker">{brand}</p>
-          <h1 className="cine-headline">La noche empieza aquí.</h1>
-          <p className="cine-sub">Fragancias de larga duración y proyección real.</p>
-          <a className="cine-cta" href={catalogHref}>Ver la colección</a>
+          <h1 className="cine-headline">{phrases[0] ?? brand}</h1>
+          <p className="cine-sub">{cfg.tagline}</p>
+          <a className="cine-cta" href={catalogHref}>{cfg.intro_button}</a>
         </div>
       </div>
     )
   }
 
   if (!active) return null
+
+  const leave = () => {
+    setDismissing(true)
+    setTimeout(() => {
+      setActive(false)
+      onDismiss?.()
+    }, 950)
+  }
 
   return (
     <div className="cine-hero">
@@ -177,13 +216,16 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
             {logoSrc && <img src={logoSrc} alt={brand} />}
             <span>{brand}</span>
           </div>
-          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="cine-nav-cta">
-            Escríbenos
-          </a>
+          <div className="cine-nav-actions">
+            <button type="button" className="cine-nav-cta" onClick={leave}>Saltar</button>
+            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="cine-nav-cta">
+              Escríbenos
+            </a>
+          </div>
         </div>
 
         <div className="cine-hero-media">
-          <div className="cine-poster" style={{ backgroundImage: "url('/hero/hero-poster.jpg')" }} aria-hidden="true" />
+          <div className="cine-poster" style={{ backgroundImage: `url('${poster}')` }} aria-hidden="true" />
           <video ref={videoRef} className="cine-video" muted playsInline aria-hidden="true" tabIndex={-1} preload="auto" />
           <div className="cine-scrim" aria-hidden="true" />
         </div>
@@ -203,8 +245,8 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
           </div>
         )}
 
-        <div className="cine-hero-bands">
-          {BANDS.map((b, i) => (
+        <div className="cine-hero-bands" key={bandsKey}>
+          {bands.map((b, i) => (
             <div
               key={i}
               className={`cine-band${b.settle ? ' cine-band-settle' : ''}`}
@@ -222,16 +264,10 @@ export default function CinematicHero({ whatsappHref, logoSrc, catalogHref = '#c
                   <button
                     type="button"
                     className="cine-cta cine-skip-end"
-                    disabled={!ended || dismissing}
-                    onClick={() => {
-                      setDismissing(true)
-                      setTimeout(() => {
-                        setActive(false)
-                        onDismiss?.()
-                      }, 950)
-                    }}
+                    disabled={(!ended && !videoFailed) || dismissing}
+                    onClick={leave}
                   >
-                    Ver tienda ↓
+                    {cfg.intro_button} ↓
                   </button>
                 )}
               </div>

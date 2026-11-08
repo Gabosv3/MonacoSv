@@ -9,6 +9,13 @@ export const SETTING_DEFAULTS = {
   store_name: 'MonacoSV',
   tagline: 'Masculine fragrance studio',
   logo_url: '', // vacío = logo que viene con el sitio
+  // intro de inicio (video + frases)
+  intro_enabled: '1',
+  intro_video_url: '', // vacío = video que viene con el sitio
+  intro_poster_url: '', // imagen mientras carga el video / si no se puede reproducir
+  intro_phrases: 'La noche empieza aquí.\nUna esencia lo cambia todo.\nLa presencia habla primero.\nLo demás sucede después.',
+  intro_end_kicker: 'Club de Nuit Intense',
+  intro_button: 'Ver tienda',
   whatsapp: '50300000000',
   city: 'Usulután',
   contact_email: '',

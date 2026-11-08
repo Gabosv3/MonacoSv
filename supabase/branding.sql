@@ -11,3 +11,7 @@ create policy "branding_insert" on storage.objects
     and name like 'branding/%'
     and has_permission('settings.edit')
   );
+
+-- El bucket admitía 5 MB por archivo: se sube a 30 MB para el video de la intro.
+-- (El plan gratuito de Supabase permite hasta 50 MB por archivo.)
+update storage.buckets set file_size_limit = 31457280 where id = 'Lociones';

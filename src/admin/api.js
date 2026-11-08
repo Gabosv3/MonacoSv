@@ -448,6 +448,23 @@ export async function requestQuote({ name, phone, notes, department, municipalit
   return data // número de cotización
 }
 
+// Sube el video de la intro (MP4 o WebM) y devuelve su URL pública
+const MAX_VIDEO_BYTES = 30 * 1024 * 1024
+export async function uploadIntroVideo(file) {
+  if (!['video/mp4', 'video/webm'].includes(file.type)) throw new Error('Usa un video MP4 o WebM.')
+  if (file.size > MAX_VIDEO_BYTES) throw new Error('El video pesa más de 30 MB. Comprímelo (ideal menos de 8 MB) e inténtalo de nuevo.')
+  const ext = file.type === 'video/webm' ? 'webm' : 'mp4'
+  const path = `branding/intro-${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(path, file, { contentType: file.type, cacheControl: '31536000' })
+  if (error) {
+    const msg = String(error.message ?? '')
+    if (/row-level security|not authorized|unauthorized|403/i.test(msg)) throw new Error('No tienes permiso para subir archivos. Ejecuta supabase/branding.sql.')
+    if (/exceeded|too large|payload/i.test(msg)) throw new Error('El video supera el límite del almacenamiento. Ejecuta supabase/branding.sql o reduce su peso.')
+    throw new Error(msg || 'No se pudo subir el video.')
+  }
+  return supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl
+}
+
 // ---------- Fotos de productos (Supabase Storage) ----------
 
 const IMAGE_BUCKET = 'Lociones' // bucket de Supabase Storage (ver supabase/storage.sql)
@@ -456,11 +473,11 @@ const ALLOWED_IMAGES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'i
 
 // Reduce fotos enormes (máx. 1000 px por lado) y las guarda en WebP, que
 // conserva la transparencia. Si algo falla, se sube el archivo original.
-async function prepareImage(file) {
+async function prepareImage(file, maxDim = 1000) {
   if (file.type === 'image/gif') return file
   try {
     const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height))
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(bitmap.width * scale)
     canvas.height = Math.round(bitmap.height * scale)
@@ -474,10 +491,10 @@ async function prepareImage(file) {
 }
 
 // Sube la foto y devuelve su URL pública
-export async function uploadProductImage(file, folder = 'products') {
+export async function uploadProductImage(file, folder = 'products', maxDim = 1000) {
   if (!ALLOWED_IMAGES.includes(file.type)) throw new Error('Usa una imagen PNG, JPG, WebP o GIF.')
   if (file.size > MAX_IMAGE_BYTES * 3) throw new Error('La imagen es demasiado grande (máximo 15 MB).')
-  const body = await prepareImage(file)
+  const body = await prepareImage(file, maxDim)
   if (body.size > MAX_IMAGE_BYTES) throw new Error('La imagen pesa más de 5 MB. Redúcela e inténtalo de nuevo.')
   const ext = body.type === 'image/webp' ? 'webp' : file.type.split('/')[1].replace('jpeg', 'jpg')
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
