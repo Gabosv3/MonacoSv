@@ -1,15 +1,12 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
-import { useLogo, useSettings } from './settings.jsx'
+import { useSettings } from './settings.jsx'
 import { useNavigate } from 'react-router-dom'
 import { buildFragrances, pickFeatured, mlOf } from './catalog'
 import { effectivePrice } from './pricing'
 import AccountPage from './components/AccountPage'
 import { fetchActiveCategories, fetchActiveDiscounts, fetchActiveProducts } from './admin/api'
-import CinematicHero from './CinematicHero'
-import StoreHeader from './components/StoreHeader'
-import HomeHero from './components/HomeHero'
-import HomeSections from './components/HomeSections'
-import StoreFooter from './components/StoreFooter'
+import DuumvirHome, { Nav, Closing } from './duumvir/DuumvirHome'
+import ProductPage from './duumvir/ProductPage'
 import CatalogView from './components/CatalogView'
 import CartDrawer from './components/CartDrawer'
 import CheckoutPage from './components/CheckoutPage'
@@ -18,8 +15,7 @@ import { readCache, writeCache } from './lib/cache'
 const CART_KEY = 'monacosv_cart'
 
 export default function App({ view = 'home' } = {}) {
-  const { cfg, wa } = useSettings()
-  const logoImg = useLogo()
+  const { cfg } = useSettings()
   const navigate = useNavigate()
   // El carrito se guarda en el navegador: sobrevive a recargar la página y al
   // inicio de sesión con Google (que sale y vuelve a la tienda).
@@ -40,16 +36,6 @@ export default function App({ view = 'home' } = {}) {
       /* sin almacenamiento: el carrito vive solo en esta visita */
     }
   }, [cart])
-  // Una vez que alguien ve la intro completa en esta pestaña, no se le
-  // vuelve a mostrar (por ejemplo, si navega a otra página y regresa).
-  const [introDone, setIntroDone] = useState(
-    () => sessionStorage.getItem('monacosv_intro_seen') === '1'
-  )
-  const markIntroDone = () => {
-    sessionStorage.setItem('monacosv_intro_seen', '1')
-    setIntroDone(true)
-  }
-
   // Catálogo real: todo viene de Supabase (lo que administras en el panel).
   // Se parte de la última copia guardada (si hay) y se refresca desde Supabase.
   const [products, setProducts] = useState(() => readCache('products') ?? [])
@@ -138,34 +124,25 @@ export default function App({ view = 'home' } = {}) {
   const itemCount = cart.reduce((sum, i) => sum + i.qty, 0)
 
   return (
-    <div className="min-h-screen bg-neutral-50 overflow-x-clip" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      {/* intro cinematográfica: video con scroll, antes de la tienda */}
+    <div className="min-h-screen bg-[#F7F6F2] text-[#141414] overflow-x-clip" style={{ fontFamily: "'Manrope', system-ui, sans-serif" }}>
+      {/* Home DUUMVIR: trae su propia barra, intro y pie */}
       {view === 'home' && (
-        <CinematicHero
-          whatsappHref={wa()}
-          logoSrc={logoImg}
-          catalogHref="/fragancias"
-          skipIntro={introDone}
-          onDismiss={markIntroDone}
+        <DuumvirHome
+          fragrances={fragrances}
+          women={women}
+          allFragrances={allFragrances}
+          state={catalogState}
+          priceOf={priceOf}
+          onAdd={addToCart}
+          itemCount={itemCount}
+          onCart={() => setCartOpen(true)}
         />
       )}
 
-      <StoreHeader itemCount={itemCount} onCart={() => setCartOpen(true)} fragrances={allFragrances} featured={[...fragrances, ...women]} />
-
-      {view === 'home' && (
+      {view !== 'home' && (
         <>
-          <HomeHero
-            fragrances={fragrances}
-            state={catalogState}
-            priceOf={priceOf}
-            onAdd={addToCart}
-          />
-          <HomeSections
-            fragrances={fragrances}
-            women={women}
-            priceOf={priceOf}
-            onAdd={addToCart}
-          />
+          <Nav solid itemCount={itemCount} onCart={() => setCartOpen(true)} />
+          <div className="h-16 sm:h-20" />
         </>
       )}
 
@@ -185,6 +162,8 @@ export default function App({ view = 'home' } = {}) {
         />
       )}
 
+      {view === 'ficha' && <ProductPage fragrances={allFragrances} state={catalogState} priceOf={priceOf} onAdd={addToCart} cartOpen={cartOpen} />}
+
       {view === 'fragancias' && (
         <CatalogView
           fragrances={allFragrances}
@@ -194,7 +173,7 @@ export default function App({ view = 'home' } = {}) {
         />
       )}
 
-      <StoreFooter />
+      {view !== 'home' && <Closing />}
 
       {cartOpen && (
         <CartDrawer

@@ -2,13 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../admin/AuthContext'
 import { useSettings, useLogo } from '../settings'
-import { INK, AMBER, display, mono } from './ui'
+import { INK, AMBER, display, mono } from './dv-ui'
 
 const AccountContext = createContext({ openAccount: () => {} })
 export const useAccount = () => useContext(AccountContext)
 
 const field =
-  'w-full h-12 rounded-xl border border-neutral-300 bg-white px-4 text-[15px] text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5'
+  'w-full h-12 rounded-none border border-[#141414]/25 bg-white px-4 text-[15px] text-[#141414] outline-none transition-colors placeholder:text-[#78716C] focus:border-[#141414] focus:ring-4 focus:ring-slate-900/5'
 
 function friendly(err) {
   const msg = String(err?.message ?? '').toLowerCase()
@@ -110,24 +110,24 @@ function AccountModal({ open, initialTab, next, onClose }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div role="dialog" aria-label="Tu cuenta" className="relative w-full sm:max-w-[440px] max-h-[100svh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl p-6 sm:p-8">
-        <button onClick={onClose} aria-label="Cerrar" className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center rounded-lg text-2xl leading-none text-slate-500 hover:bg-neutral-100">×</button>
+      <div role="dialog" aria-label="Tu cuenta" className="relative w-full sm:max-w-[440px] max-h-[100svh] overflow-y-auto rounded-t-none sm:rounded-none bg-white shadow-2xl p-6 sm:p-8">
+        <button onClick={onClose} aria-label="Cerrar" className="absolute right-4 top-4 w-9 h-9 flex items-center justify-center rounded-none text-2xl leading-none text-[#57534E] hover:bg-[#EDE8DF]">×</button>
 
         <div className="flex items-center gap-3">
-          <img src={logoImg} alt="" className="w-10 h-10 object-contain rounded-lg" />
+          <img src={logoImg} alt="" className="w-10 h-10 object-contain rounded-none" />
           <span className="text-lg font-black tracking-tight" style={{ ...display, color: INK }}>{cfg.store_name.toUpperCase()}</span>
         </div>
 
-        <h2 className="mt-6 text-2xl font-black uppercase leading-tight" style={{ ...display, color: INK }}>
+        <h2 className="mt-6 text-2xl font-black leading-tight" style={{ ...display, color: INK }}>
           {forgot ? 'Recuperar acceso' : tab === 'login' ? 'Ingresa a tu cuenta' : 'Crea tu cuenta'}
         </h2>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-[#57534E]">
           {forgot ? 'Escribe tu correo y te enviamos un enlace.' : tab === 'login' ? 'Revisa tus pedidos y compra más rápido.' : 'Guarda tus datos, sigue tus pedidos y cotizaciones.'}
         </p>
 
         {!forgot && (
           <>
-            <div className="mt-6 grid grid-cols-2 gap-1 p-1 rounded-xl bg-neutral-100" role="tablist">
+            <div className="mt-6 grid grid-cols-2 gap-1 p-1 rounded-none bg-[#EDE8DF]" role="tablist">
               {[['login', 'Ingresar'], ['register', 'Crear cuenta']].map(([key, label]) => (
                 <button
                   key={key}
@@ -139,7 +139,7 @@ function AccountModal({ open, initialTab, next, onClose }) {
                     setError('')
                     setNotice('')
                   }}
-                  className="h-10 rounded-lg text-sm font-semibold transition-colors"
+                  className="h-10 rounded-none text-sm font-semibold transition-colors"
                   style={tab === key ? { backgroundColor: '#fff', color: INK, boxShadow: '0 1px 3px rgba(0,0,0,0.12)' } : { color: '#64748b' }}
                 >
                   {label}
@@ -151,12 +151,12 @@ function AccountModal({ open, initialTab, next, onClose }) {
               type="button"
               onClick={google}
               disabled={busy}
-              className="mt-5 w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white text-sm font-semibold text-slate-700 hover:bg-neutral-50 disabled:opacity-60 transition-colors"
+              className="mt-5 w-full h-12 flex items-center justify-center gap-3 rounded-none border border-[#141414]/25 bg-white text-sm font-semibold text-[#141414] hover:bg-[#F7F6F2] disabled:opacity-60 transition-colors"
             >
               <GoogleIcon /> Continuar con Google
             </button>
-            <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-widest text-slate-400" style={mono}>
-              <span className="flex-1 h-px bg-neutral-200" /> o con tu correo <span className="flex-1 h-px bg-neutral-200" />
+            <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#78716C]" style={mono}>
+              <span className="flex-1 h-px bg-[#E2DCD0]" /> o con tu correo <span className="flex-1 h-px bg-[#E2DCD0]" />
             </div>
           </>
         )}
@@ -179,31 +179,31 @@ function AccountModal({ open, initialTab, next, onClose }) {
                   aria-label="Contraseña"
                   className={`${field} pr-20`}
                 />
-                <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900">
+                <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[#57534E] hover:text-[#141414]">
                   {show ? 'Ocultar' : 'Ver'}
                 </button>
               </div>
               {tab === 'login' && (
-                <button type="button" onClick={() => { setForgot(true); setError(''); setNotice('') }} className="mt-2 text-xs font-semibold text-slate-500 underline hover:text-slate-900">
+                <button type="button" onClick={() => { setForgot(true); setError(''); setNotice('') }} className="mt-2 text-xs font-semibold text-[#57534E] underline hover:text-[#141414]">
                   ¿Olvidaste tu contraseña?
                 </button>
               )}
             </div>
           )}
 
-          {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-          {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
+          {error && <p role="alert" className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          {notice && <p role="status" className="rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
 
-          <button type="submit" disabled={busy} className="w-full h-12 rounded-xl text-white text-[13px] font-bold uppercase tracking-[0.15em] hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: INK }}>
+          <button type="submit" disabled={busy} className="w-full h-12 rounded-none text-white text-[13px] font-bold uppercase tracking-[0.15em] hover:opacity-90 disabled:opacity-60 transition-opacity" style={{ backgroundColor: INK }}>
             {busy ? 'Un momento…' : forgot ? 'Enviar enlace' : tab === 'login' ? 'Ingresar' : 'Crear mi cuenta'}
           </button>
         </form>
 
         {forgot && (
-          <button onClick={() => { setForgot(false); setError(''); setNotice('') }} className="mt-5 text-sm text-slate-500 hover:text-slate-900">← Volver a ingresar</button>
+          <button onClick={() => { setForgot(false); setError(''); setNotice('') }} className="mt-5 text-sm text-[#57534E] hover:text-[#141414]">← Volver a ingresar</button>
         )}
         {!forgot && tab === 'register' && (
-          <p className="mt-5 text-xs text-slate-400 leading-relaxed">
+          <p className="mt-5 text-xs text-[#78716C] leading-relaxed">
             Al crear tu cuenta aceptas que usemos tus datos para gestionar tus pedidos y cotizaciones. <span style={{ color: AMBER }}>Nunca los compartimos.</span>
           </p>
         )}

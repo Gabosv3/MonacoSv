@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { fetchCouponByCode } from '../admin/api'
 import { formatPrice } from '../catalog'
 
-const input = 'flex-1 border border-neutral-300 rounded-md px-3 py-2 text-sm uppercase'
+const input = 'flex-1 min-w-0 min-h-12 border border-[#141414]/20 px-4 text-[14px] uppercase placeholder:normal-case outline-none focus:border-[#141414]'
 
 // Campo de cupón: valida el código y guarda el cupón aplicado en el estado de la tienda.
 export default function CouponBox({ subtotal, coupon, onChange }) {
@@ -31,7 +31,7 @@ export default function CouponBox({ subtotal, coupon, onChange }) {
 
   if (coupon) {
     return (
-      <div className="flex items-center justify-between bg-green-50 text-green-700 text-sm rounded-md px-3 py-2">
+      <div className="flex items-center justify-between bg-green-50 text-green-700 text-sm rounded-none px-3 py-2">
         <span>Cupón <strong>{coupon.code}</strong> aplicado</span>
         <button onClick={() => { onChange(null); setCode('') }} className="text-green-700/70 hover:text-green-900">Quitar</button>
       </div>
@@ -41,8 +41,8 @@ export default function CouponBox({ subtotal, coupon, onChange }) {
   return (
     <div>
       <div className="flex gap-2">
-        <input type="text" placeholder="Código de cupón" value={code} onChange={(e) => setCode(e.target.value)} className={input} />
-        <button onClick={apply} disabled={checking || !code.trim()} className="text-sm px-3 py-2 rounded-md border border-neutral-300 hover:bg-neutral-50 disabled:opacity-50">
+        <input type="text" aria-label="Código de cupón" placeholder="Código de cupón" value={code} onChange={(e) => setCode(e.target.value)} className={input} />
+        <button onClick={apply} disabled={checking || !code.trim()} className="min-h-12 px-5 border border-[#141414] text-[14px] font-semibold hover:bg-[#141414] hover:text-white transition-colors disabled:opacity-40">
           {checking ? '...' : 'Aplicar'}
         </button>
       </div>

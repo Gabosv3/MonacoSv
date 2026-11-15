@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import './fonts'
 import { useAuth } from './AuthContext'
 import { useSettings, useLogo } from '../settings'
 import { listProducts, listSales } from './api'

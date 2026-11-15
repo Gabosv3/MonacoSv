@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { formatPrice, sizeLabel } from '../catalog'
-import { Icon, ICONS, INK, AMBER, display, mono, PriceTag } from './ui'
-import { BottlePlaceholder } from './HomeHero'
+import { formatPrice } from '../catalog'
+import { INK, display } from './dv-ui'
+import { ProductCard, TrustFacts } from '../duumvir/commerce'
 
 const SORTS = [
   { key: 'destacados', label: 'Destacados' },
@@ -29,89 +28,13 @@ function Chip({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className="px-3.5 py-2 rounded-full border text-[12px] font-semibold transition-colors whitespace-nowrap"
-      style={active ? { backgroundColor: INK, borderColor: INK, color: '#fff' } : { backgroundColor: '#fff', borderColor: '#e2e8f0', color: '#475569' }}
+      aria-pressed={active}
+      className={`min-h-10 px-4 rounded-full border text-[14px] font-medium transition-colors whitespace-nowrap ${
+        active ? 'bg-[#141414] border-[#141414] text-white' : 'bg-white border-[#141414]/15 text-[#141414] hover:border-[#141414]'
+      }`}
     >
       {children}
     </button>
-  )
-}
-
-function Card({ f, sizes, priceOf, onAdd, index }) {
-  const [ml, setMl] = useState(null)
-  const size = sizes.find((s) => s.ml === ml) ?? sizes.find((s) => s.ml === 10) ?? sizes[0]
-  const out = size.product.stock != null && size.product.stock <= 0
-  const price = priceOf(size.product)
-  const original = Number(size.product.price)
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: Math.min(index, 8) * 0.04 }}
-      className="group flex flex-col rounded-2xl border border-neutral-200 bg-white overflow-hidden hover:shadow-[0_20px_50px_-20px_rgba(15,26,46,0.3)] transition-shadow"
-    >
-      <div className="relative aspect-[4/5]" style={{ background: `radial-gradient(ellipse 60% 50% at 50% 60%, ${AMBER}1f, #f6f4f0 75%)` }}>
-        {f.code && <span className="absolute left-4 top-4 text-[10px] font-bold uppercase tracking-wider text-slate-400" style={mono}>#{f.code}</span>}
-        {original > price && (
-          <span className="absolute right-4 top-4 px-2 py-1 rounded-md text-[10px] font-bold uppercase text-white" style={{ backgroundColor: AMBER }}>
-            -{Math.round((1 - price / original) * 100)}%
-          </span>
-        )}
-        {f.image ? (
-          <img src={f.image} alt={f.name} loading="lazy" className="absolute inset-0 m-auto w-[78%] h-[78%] object-contain drop-shadow-[0_18px_22px_rgba(15,26,46,0.25)] transition-transform duration-500 group-hover:scale-105" />
-        ) : (
-          <BottlePlaceholder className="absolute inset-0 m-auto w-[45%] h-[60%]" />
-        )}
-      </div>
-
-      <div className="p-5 flex flex-col gap-3 flex-1">
-        <div>
-          {f.brand && <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400" style={mono}>{f.brand}</p>}
-          <h3 className="mt-1 text-lg font-black leading-tight" style={{ ...display, color: INK }}>{f.name}</h3>
-          {f.tag && <p className="mt-1 text-xs text-slate-500">{f.tag}</p>}
-        </div>
-
-        {f.notes.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {f.notes.slice(0, 3).map((n) => (
-              <span key={n} className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-[11px] font-semibold text-amber-800">{n}</span>
-            ))}
-          </div>
-        )}
-
-        {sizes.length > 1 && (
-          <div className="grid gap-1 p-1 rounded-xl bg-neutral-100" style={{ gridTemplateColumns: `repeat(${sizes.length}, minmax(0, 1fr))` }}>
-            {sizes.map((s) => {
-              const active = s === size
-              return (
-                <button
-                  key={s.product.id}
-                  onClick={() => setMl(s.ml)}
-                  className="py-2 rounded-lg text-[12px] font-bold transition-colors"
-                  style={active ? { backgroundColor: INK, color: '#fff' } : { color: '#64748b' }}
-                  title={sizeLabel(s.ml)}
-                >
-                  {s.ml} ml
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="mt-auto pt-1 flex items-center justify-between gap-3">
-          <PriceTag price={price} original={original} priceClass="text-xl font-black" color={INK} />
-          <button
-            onClick={() => onAdd(size.product)}
-            disabled={out}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-[11px] font-bold uppercase tracking-wider disabled:opacity-40"
-            style={{ backgroundColor: INK }}
-          >
-            <Icon d={ICONS.bag} size={14} /> {out ? 'Agotado' : 'Añadir'}
-          </button>
-        </div>
-      </div>
-    </motion.article>
   )
 }
 
@@ -119,27 +42,27 @@ const csv = (v) => (v ? v.split(',').filter(Boolean) : [])
 
 function Group({ title, children }) {
   return (
-    <div className="border-b border-neutral-200 pb-6 last:border-0">
-      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400" style={mono}>{title}</p>
-      <div className="mt-3">{children}</div>
+    <div className="border-b border-[#141414]/10 pb-7 last:border-0">
+      <p className="text-[13px] font-semibold text-[#141414]">{title}</p>
+      <div className="mt-4">{children}</div>
     </div>
   )
 }
 
 function Check({ checked, onChange, label, count }) {
   return (
-    <label className="flex items-center gap-3 py-1.5 cursor-pointer group/check">
+    <label className="flex items-center gap-3 py-2 cursor-pointer group/check">
       <input type="checkbox" checked={checked} onChange={onChange} className="sr-only peer" />
       <span
-        className="w-[18px] h-[18px] rounded-md border flex items-center justify-center flex-shrink-0 transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-offset-1"
-        style={checked ? { backgroundColor: INK, borderColor: INK } : { borderColor: '#cbd5e1', backgroundColor: '#fff' }}
+        className="w-5 h-5 border flex items-center justify-center flex-shrink-0 transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#141414]"
+        style={checked ? { backgroundColor: INK, borderColor: INK } : { borderColor: 'rgba(20,20,20,0.3)', backgroundColor: '#fff' }}
       >
         {checked && (
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-10" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
         )}
       </span>
-      <span className="flex-1 text-sm text-slate-700 group-hover/check:text-slate-900">{label}</span>
-      <span className="text-xs text-slate-400" style={mono}>{count}</span>
+      <span className="flex-1 text-[15px] text-[#141414]">{label}</span>
+      <span className="text-[13px] tabular-nums text-[#78716C]">{count}</span>
     </label>
   )
 }
@@ -198,7 +121,10 @@ export default function CatalogView({ fragrances, state = 'ready', priceOf, onAd
     }
   }, [base])
   const tamCount = (key) => base.filter((f) => f.sizes.some((s) => matchesTam(s.ml, key))).length
-  const topNotes = [...noteCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
+  // las notas elegidas van primero; después, las más frecuentes
+  const topNotes = [...noteCount.entries()]
+    .sort((a, b) => notas.includes(b[0]) - notas.includes(a[0]) || b[1] - a[1])
+    .slice(0, 14)
 
   const visible = useMemo(() => {
     const list = base
@@ -233,8 +159,21 @@ export default function CatalogView({ fragrances, state = 'ready', priceOf, onAd
   const clear = () => setParams({}, { replace: true })
 
   const noWomenYet = gen === 'mujer' && !fragrances.some((f) => f.gender === 'mujer')
-  const title =
-    gen === 'mujer' ? 'Para ella' : gen === 'hombre' ? 'Para él' : tam === 'decant' ? 'Decants' : tam === 'botella' ? 'Botellas selladas' : 'Todas las fragancias'
+  const oneNote = notas.length === 1 && !gen && !tam && !q && !casas.length
+  const kicker = oneNote ? 'Explorar por nota' : q ? 'Resultados de búsqueda' : 'Catálogo'
+  const title = oneNote
+    ? notas[0]
+    : q
+      ? `“${q}”`
+      : gen === 'mujer' ? 'Para ella' : gen === 'hombre' ? 'Para él' : gen === 'unisex' ? 'Unisex' : tam === 'decant' ? 'Decants' : tam === 'botella' ? 'Botellas selladas' : 'Todas las fragancias'
+  const intro = oneNote
+    ? `Fragancias del catálogo que llevan ${notas[0].toLowerCase()} entre sus notas.`
+    : tam === 'decant'
+      ? 'Atomizadores de 10 ml para probar una fragancia antes de ir por la botella.'
+      : tam === 'botella'
+        ? 'Frascos completos, sellados.'
+        : 'Explora por casa, nota, presentación o precio.'
+  const count = `${visible.length} ${visible.length === 1 ? 'fragancia' : 'fragancias'}`
 
   const Filters = (
     <div className="space-y-6">
@@ -263,18 +202,6 @@ export default function CatalogView({ fragrances, state = 'ready', priceOf, onAd
         </Group>
       )}
 
-      {topNotes.length > 0 && (
-        <Group title="Notas">
-          <div className="flex flex-wrap gap-2">
-            {topNotes.map(([n, c]) => (
-              <Chip key={n} active={notas.includes(n)} onClick={() => toggleIn('nota', notas, n)}>
-                {n} <span className="opacity-60">{c}</span>
-              </Chip>
-            ))}
-          </div>
-        </Group>
-      )}
-
       {bounds[1] > bounds[0] && (
         <Group title="Precio máximo">
           <input
@@ -284,10 +211,10 @@ export default function CatalogView({ fragrances, state = 'ready', priceOf, onAd
             step="1"
             value={maxPrice || bounds[1]}
             onChange={(e) => setParam('max', Number(e.target.value) >= bounds[1] ? '' : e.target.value)}
-            className="w-full accent-[#0f1a2e]"
+            className="w-full accent-[#141414]"
             aria-label="Precio máximo"
           />
-          <div className="mt-1 flex justify-between text-xs text-slate-500" style={mono}>
+          <div className="mt-2 flex justify-between text-[13px] tabular-nums text-[#57534E]">
             <span>{formatPrice(bounds[0])}</span>
             <strong style={{ color: INK }}>{formatPrice(maxPrice || bounds[1])}</strong>
           </div>
@@ -301,85 +228,97 @@ export default function CatalogView({ fragrances, state = 'ready', priceOf, onAd
   )
 
   return (
-    <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-12 py-10 lg:py-14">
-      <nav className="text-[11px] uppercase tracking-wider text-slate-400" style={mono}>
-        <Link to="/" className="hover:text-slate-700">Inicio</Link> <span className="mx-1.5">/</span> <span className="text-slate-600">Catálogo</span>
+    <main className="max-w-[1500px] mx-auto px-5 sm:px-8 lg:px-12 pt-8 pb-20 lg:pt-12 lg:pb-28">
+      <nav className="text-[13px] text-[#78716C]" aria-label="Ruta">
+        <Link to="/" className="hover:text-[#141414]">Inicio</Link> <span className="mx-2">/</span>
+        {oneNote || q || gen || tam ? <Link to="/fragancias" className="hover:text-[#141414]">Catálogo</Link> : <span className="text-[#141414]">Catálogo</span>}
+        {(oneNote || q || gen || tam) && <><span className="mx-2">/</span><span className="text-[#141414]">{title}</span></>}
       </nav>
 
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+      <header className="mt-8 lg:mt-10 pb-8 lg:pb-10 border-b border-[#141414]/10 grid md:grid-cols-[1fr_auto] gap-6 items-end">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black uppercase leading-tight" style={{ ...display, color: INK }}>{title}</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            {visible.length} {visible.length === 1 ? 'fragancia' : 'fragancias'}
-          </p>
+          <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-[#57534E]">{kicker}</p>
+          <h1 className="mt-3 text-[clamp(2.75rem,5.2vw,4.5rem)] leading-[1] text-[#141414] text-balance" style={display}>{title}</h1>
+          <p className="mt-4 text-[17px] leading-relaxed text-[#57534E] max-w-[52ch]">{intro}</p>
+          <TrustFacts className="mt-5" />
         </div>
-
-        <div className="flex items-center gap-2">
-          <button onClick={() => setFiltersOpen((v) => !v)} className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-300 bg-white text-[12px] font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setFiltersOpen((v) => !v)} aria-expanded={filtersOpen} className="lg:hidden flex-1 flex items-center justify-center gap-2 min-h-12 px-5 border border-[#141414] bg-white text-[14px] font-semibold">
             Filtros
-            {active.length > 0 && (
-              <span className="min-w-5 h-5 px-1 rounded-full text-[10px] text-white flex items-center justify-center" style={{ backgroundColor: AMBER }}>{active.length}</span>
-            )}
+            {active.length > 0 && <span className="min-w-5 h-5 px-1 rounded-full text-[11px] text-white bg-[#141414] flex items-center justify-center">{active.length}</span>}
           </button>
-          <label className="flex items-center gap-2 text-[12px] font-semibold text-slate-500">
-            <span className="hidden sm:inline">Ordenar por</span>
-            <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-10 rounded-xl border border-neutral-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-slate-500">
+          <label className="flex-1 md:flex-none flex items-center gap-3 text-[14px] text-[#57534E]">
+            <span className="hidden sm:inline whitespace-nowrap">Ordenar por</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} className="w-full md:w-auto min-h-12 border border-[#141414]/20 bg-white px-3 text-[14px] font-medium text-[#141414] outline-none focus:border-[#141414]">
               {SORTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
             </select>
           </label>
         </div>
-      </div>
+      </header>
 
-      {active.length > 0 && (
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {active.map((a, i) => (
-            <button key={`${a.label}-${i}`} onClick={a.remove} className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-full text-[12px] font-semibold text-white" style={{ backgroundColor: INK }}>
-              {a.label} <span className="text-base leading-none opacity-70">×</span>
-            </button>
-          ))}
-          <button onClick={clear} className="ml-1 text-[12px] font-semibold text-slate-500 underline hover:text-slate-900">Limpiar todo</button>
+      {/* notas olfativas: el acceso más directo para descubrir fragancias */}
+      {topNotes.length > 0 && (
+        <div className="py-6 border-b border-[#141414]/10">
+          <div className="dv-noscroll flex items-center gap-2.5 overflow-x-auto lg:flex-wrap lg:overflow-visible -mx-5 px-5 sm:mx-0 sm:px-0">
+            <span className="shrink-0 mr-2 text-[13px] font-semibold text-[#141414]">Notas</span>
+            {topNotes.map(([n, c]) => (
+              <Chip key={n} active={notas.includes(n)} onClick={() => toggleIn('nota', notas, n)}>
+                {n} <span className="ml-1 text-[12px] opacity-60 tabular-nums">{c}</span>
+              </Chip>
+            ))}
+          </div>
         </div>
       )}
 
-      {filtersOpen && <div className="lg:hidden mt-5 rounded-2xl border border-neutral-200 bg-white p-5">{Filters}</div>}
+      <div className="mt-6 flex flex-wrap items-center gap-2 min-h-10">
+        <p className="mr-3 text-[15px] text-[#141414]"><strong className="font-semibold tabular-nums">{count}</strong></p>
+        {active.map((a, i) => (
+          <button key={`${a.label}-${i}`} onClick={a.remove} aria-label={`Quitar filtro ${a.label}`} className="flex items-center gap-2 min-h-9 pl-3.5 pr-2.5 rounded-full bg-[#EDE8DF] text-[13px] font-medium text-[#141414] hover:bg-[#E2DCD0]">
+            {a.label} <span className="text-base leading-none" aria-hidden>×</span>
+          </button>
+        ))}
+        {active.length > 0 && <button onClick={clear} className="ml-1 text-[14px] text-[#57534E] underline underline-offset-4 hover:text-[#141414]">Limpiar todo</button>}
+      </div>
 
-      <div className="mt-8 grid lg:grid-cols-[250px_1fr] gap-10">
+      {filtersOpen && <div className="lg:hidden mt-5 border border-[#141414]/10 bg-white p-5">{Filters}</div>}
+
+      <div className="mt-8 grid lg:grid-cols-[240px_1fr] gap-10 xl:gap-14">
         <aside className="hidden lg:block">
-          <div className="sticky top-[200px] max-h-[calc(100vh-220px)] overflow-y-auto pr-2">{Filters}</div>
+          <div className="sticky top-28">{Filters}</div>
         </aside>
 
         <section>
           {state === 'loading' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {[0, 1, 2].map((i) => <div key={i} className="h-96 rounded-2xl bg-white border border-neutral-200 animate-pulse" />)}
+              {[0, 1, 2].map((i) => <div key={i} className="h-[34rem] bg-white border border-[#141414]/8 animate-pulse" />)}
             </div>
           ) : state === 'error' ? (
-            <div className="rounded-2xl border border-dashed border-neutral-300 bg-white py-16 px-6 text-center">
-              <p className="text-lg font-bold" style={{ color: INK }}>No pudimos cargar el catálogo</p>
-              <p className="mt-2 text-sm text-slate-500">Revisa tu conexión e inténtalo de nuevo.</p>
-              <button onClick={() => window.location.reload()} className="mt-5 px-5 py-3 rounded-xl text-white text-[12px] font-bold uppercase tracking-wider" style={{ backgroundColor: INK }}>Reintentar</button>
+            <div className="border border-[#141414]/10 bg-white py-20 px-6 text-center">
+              <p className="text-2xl text-[#141414]" style={display}>No pudimos cargar el catálogo</p>
+              <p className="mt-3 text-[16px] text-[#57534E]">Revisa tu conexión e inténtalo de nuevo.</p>
+              <button onClick={() => window.location.reload()} className="mt-6 min-h-12 px-6 bg-[#141414] text-white text-[14px] font-semibold hover:bg-[#2B2B2B]">Reintentar</button>
             </div>
           ) : fragrances.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-300 bg-white py-16 px-6 text-center">
-              <p className="text-lg font-bold" style={{ color: INK }}>Todavía no hay productos</p>
-              <p className="mt-2 text-sm text-slate-500">Estamos preparando el catálogo. Vuelve pronto.</p>
+            <div className="border border-[#141414]/10 bg-white py-20 px-6 text-center">
+              <p className="text-2xl text-[#141414]" style={display}>Todavía no hay productos</p>
+              <p className="mt-3 text-[16px] text-[#57534E]">Estamos preparando el catálogo. Vuelve pronto.</p>
             </div>
           ) : visible.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-300 bg-white py-16 px-6 text-center">
-              <p className="text-lg font-bold" style={{ color: INK }}>
+            <div className="border border-[#141414]/10 bg-white py-20 px-6 text-center">
+              <p className="text-2xl text-[#141414]" style={display}>
                 {noWomenYet ? 'Muy pronto: nuestra línea para ella' : 'No encontramos fragancias con esos filtros'}
               </p>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-3 text-[16px] text-[#57534E]">
                 {noWomenYet ? 'Estamos preparando la selección. Escríbenos y te asesoramos con gusto.' : 'Prueba con otra búsqueda o quita algún filtro.'}
               </p>
-              <button onClick={clear} className="mt-5 px-5 py-3 rounded-xl text-white text-[12px] font-bold uppercase tracking-wider" style={{ backgroundColor: INK }}>
+              <button onClick={clear} className="mt-6 min-h-12 px-6 bg-[#141414] text-white text-[14px] font-semibold hover:bg-[#2B2B2B]">
                 Ver todo el catálogo
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-              {visible.map(({ f, sizes }, i) => (
-                <Card key={`${f.id}-${tam}`} f={f} sizes={sizes} index={i} priceOf={priceOf} onAdd={onAdd} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 lg:gap-6">
+              {visible.map(({ f, sizes }) => (
+                <ProductCard key={`${f.id}-${tam}`} f={f} sizes={sizes} priceOf={priceOf} onAdd={onAdd} />
               ))}
             </div>
           )}

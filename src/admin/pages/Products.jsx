@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { createProduct, deleteProduct, listCategories, listProducts, setFragranceFields, setImageForName, updateProduct } from '../api'
+import { USAGE_GROUPS, cleanUsage, setFragranceUsage } from '../../duumvir/experienceApi'
 import ImageUpload from '../ImageUpload'
 import { formatPrice } from '../../catalog'
 import { useAuth } from '../AuthContext'
@@ -47,6 +48,8 @@ export default function Products() {
   const [saving, setSaving] = useState(false)
   const [toDelete, setToDelete] = useState(null)
   const [applyAll, setApplyAll] = useState(true) // misma foto para las otras presentaciones
+  const [usage, setUsage] = useState({}) // guía de uso (1 a 5 por eje); se guarda aparte del producto
+  const [usageTouched, setUsageTouched] = useState(false) // solo se guarda si se cambió
   const [originalImage, setOriginalImage] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [statusFilter, setStatusFilter] = useState('todos') // todos | activos | ocultos | bajo
@@ -88,6 +91,8 @@ export default function Products() {
     setEditingId(null)
     setOriginalImage('')
     setApplyAll(true)
+    setUsage({})
+    setUsageTouched(false)
     setForm(EMPTY)
     setOpen(true)
   }
@@ -96,6 +101,8 @@ export default function Products() {
     setEditingId(p.id)
     setOriginalImage(p.image_url || '')
     setApplyAll(true)
+    setUsage(cleanUsage(p.usage))
+    setUsageTouched(false)
     setForm({
       name: p.name,
       category: p.category,
@@ -152,7 +159,17 @@ export default function Products() {
       if (applyAll && payload.image_url && payload.image_url !== originalImage && siblings.length) {
         await setImageForName(payload.name, payload.image_url)
       }
+      // la guía de uso va en su propia columna: si la base aún no la tiene, el producto se guarda igual
+      let usageNote = ''
+      if (usageTouched) {
+        try {
+          await setFragranceUsage(payload.name, usage)
+        } catch {
+          usageNote = ' La guía de uso no se guardó: falta ejecutar supabase/product_experience.sql en el SQL Editor de Supabase.'
+        }
+      }
       setOpen(false)
+      if (usageNote) setNotice(`Producto guardado.${usageNote}`)
       load()
     } catch (err) {
       setError(/column|schema cache/i.test(err.message) ? 'Falta actualizar la base de datos. Ejecuta supabase/product_fields.sql y supabase/accounts_and_settings.sql en el SQL Editor de Supabase y recarga.' : err.message)
@@ -441,6 +458,26 @@ export default function Products() {
             <Field label="Etiqueta destacada" className="col-span-2" hint="La frase que aparece sobre la foto. Ej. Bestia de fiestas & noche.">
               <input value={form.highlight} onChange={(e) => set({ highlight: e.target.value })} placeholder="Bestia de fiestas & noche" className={inputCls} />
             </Field>
+          </Section>
+
+          <Section title="Guía de uso">
+            <p className="col-span-2 -mt-1 text-xs text-slate-400">Tu recomendación de cuándo usar «{form.name.trim() || 'esta fragancia'}», de 1 (poco) a 5 (ideal). Se muestra en su ficha como gráfico. Deja «Sin dato» lo que no quieras indicar; un gráfico aparece con al menos tres valores.</p>
+            {USAGE_GROUPS.map((g) => (
+              <div key={g.key} className="col-span-2">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{g.title}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {g.axes.map(([key, label]) => (
+                    <label key={key} className="block text-xs text-slate-600">
+                      {label}
+                      <select value={usage[key] ?? ''} onChange={(e) => { setUsageTouched(true); setUsage((u) => ({ ...u, [key]: e.target.value ? Number(e.target.value) : undefined })) }} className={`${inputCls} mt-1`}>
+                        <option value="">Sin dato</option>
+                        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
           </Section>
 
           <Section title="Etiquetas">

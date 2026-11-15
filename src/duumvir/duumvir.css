@@ -1,0 +1,394 @@
+/* DUUMVIR · Home editorial. Carbón #141414, marfil #EDE8DF, Bodoni Moda 900 Italic. */
+:root {
+  --dv-ink: #141414;
+  --dv-ivory: #ede8df;
+  --dv-mute: rgba(237, 232, 223, 0.55);
+  --dv-line: rgba(237, 232, 223, 0.16);
+}
+.dv {
+  background: var(--dv-ink);
+  color: var(--dv-ivory);
+  font-family: 'Manrope', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.dv ::selection {
+  background: var(--dv-ivory);
+  color: var(--dv-ink);
+}
+/* Titulares editoriales: Cormorant Garamond Semibold, en redonda.
+   (dv-serif se conserva como nombre de clase.) */
+.dv-serif,
+.dv-display {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: -0.012em;
+}
+/* dv-accent ya no cambia de familia: mismo titular, sin cursiva */
+.dv-accent {
+  font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+  font-style: normal;
+  font-weight: 500;
+}
+.dv-serif .dv-accent,
+.dv-display .dv-accent,
+.dv-accent.dv-mask {
+  font-weight: inherit;
+}
+/* Nombres de producto: Manrope Semibold */
+.dv-product {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+/* Logotipo: la marca conserva su Bodoni Moda 900 Italic */
+.dv-logo {
+  font-family: 'Bodoni Moda', serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+.dv-mono {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* enlaces con subrayado que se dibuja */
+.dv-link {
+  position: relative;
+  display: inline-block;
+}
+.dv-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* botón píldora que se rellena desde abajo */
+.dv-pill {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.85em 1.4em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  isolation: isolate;
+  transition: color 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--dv-ivory);
+  transform: translateY(101%);
+  transition: transform 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-pill:hover:not(:disabled) {
+  color: var(--dv-ink);
+}
+.dv-pill:hover:not(:disabled)::before {
+  transform: translateY(0);
+}
+.dv-pill:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.dv-pill--dark::before {
+  background: var(--dv-ink);
+}
+.dv-pill--dark:hover:not(:disabled) {
+  color: var(--dv-ivory);
+}
+
+/* titular del hero */
+.dv-hero-title {
+  font-size: min(15.5vw, 24svh);
+  line-height: 0.9;
+  letter-spacing: 0.005em;
+}
+.dv-mask {
+  font-weight: inherit;
+}
+/* Nombres de producto: Manrope Semibold */
+.dv-product {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+/* Logotipo: la marca conserva su Bodoni Moda 900 Italic */
+.dv-logo {
+  font-family: 'Bodoni Moda', serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+.dv-mono {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* enlaces con subrayado que se dibuja */
+.dv-link {
+  position: relative;
+  display: inline-block;
+}
+.dv-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* botón píldora que se rellena desde abajo */
+.dv-pill {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.85em 1.4em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  isolation: isolate;
+  transition: color 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--dv-ivory);
+  transform: translateY(101%);
+  transition: transform 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-pill:hover:not(:disabled) {
+  color: var(--dv-ink);
+}
+.dv-pill:hover:not(:disabled)::before {
+  transform: translateY(0);
+}
+.dv-pill:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.dv-pill--dark::before {
+  background: var(--dv-ink);
+}
+.dv-pill--dark:hover:not(:disabled) {
+  color: var(--dv-ivory);
+}
+
+/* titular del hero */
+.dv-hero-title {
+  font-size: min(23vw, 29svh);
+  line-height: 0.82;
+  letter-spacing: -0.055em;
+}
+.dv-hero-title .dv-accent {
+  letter-spacing: -0.03em;
+  font-size: 1.08em;
+}
+.dv-mask {
+  display: block;
+  overflow: hidden;
+  padding: 0.06em 0.08em 0.1em;
+  margin: -0.06em -0.08em -0.1em;
+}
+
+/* cinta en movimiento */
+.dv-marquee {
+  display: flex;
+  width: max-content;
+  animation: dv-marquee 28s linear infinite;
+}
+@keyframes dv-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* filas de la selección */
+.dv-row {
+  border-top: 1px solid var(--dv-line);
+  transition: background 0.5s cubic-bezier(0.19, 1, 0.22, 1), color 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-row-name {
+  font-size: clamp(2.2rem, 4.8vw, 5.25rem);
+  line-height: 0.92;
+  transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+}
+@media (hover: hover) {
+  .dv-rows:hover .dv-row {
+    color: rgba(237, 232, 223, 0.32);
+  }
+  .dv-rows:hover .dv-row:hover {
+    color: var(--dv-ivory);
+  }
+  .dv-row:hover .dv-row-name {
+    transform: translateX(0.35em);
+  }
+}
+
+/* foto de producto sobre marfil: el fondo blanco de la foto se funde */
+.dv-product-tile {
+  background: var(--dv-ivory);
+}
+.dv-product-tile img {
+  mix-blend-mode: multiply;
+}
+
+/* cursor propio (solo con ratón) */
+.dv-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  mix-blend-mode: difference;
+}
+.dv-cursor-dot {
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background: var(--dv-ivory);
+  color: var(--dv-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0.14);
+  transition: transform 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.dv-cursor-dot span {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.dv-cursor.is-active .dv-cursor-dot {
+  transform: scale(1);
+}
+.dv-cursor.is-active .dv-cursor-dot span {
+  opacity: 1;
+}
+@media (hover: none), (pointer: coarse) {
+  .dv-cursor,
+  .dv-preview {
+    display: none;
+  }
+}
+
+/* grano sutil sobre toda la página */
+.dv-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.dv-wordmark {
+  white-space: nowrap;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-marquee {
+    animation: none;
+  }
+}
+
+/* etiquetas y navegación en la tipografía funcional */
+.dv-label {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.dv-nav {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* botones: sólido = acción principal, línea = acción secundaria */
+.dv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #141414;
+  transition: background 0.3s, color 0.3s;
+}
+.dv-btn--solid {
+  background: #141414;
+  color: #fff;
+}
+.dv-btn--solid:hover {
+  background: #2b2b2b;
+}
+.dv-btn--line {
+  color: #141414;
+}
+.dv-btn--line:hover {
+  background: #141414;
+  color: #fff;
+}
+
+/* foco visible para quien navega con teclado */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* carriles horizontales sin barra de desplazamiento visible */
+.dv-noscroll {
+  scrollbar-width: none;
+}
+.dv-noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+.dv-btn--ivory {
+  background: #ede8df;
+  color: #141414;
+  border-color: #ede8df;
+}
+.dv-btn--ivory:hover {
+  background: #fff;
+}

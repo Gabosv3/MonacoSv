@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { readCache, writeCache } from '../lib/cache'
 
 // ---------- Productos ----------
 
@@ -629,13 +630,24 @@ export async function fetchActiveCategories() {
 // supabase/performance.sql, cae a la tabla pero pidiendo solo las columnas públicas.
 const PUBLIC_PRODUCT_COLUMNS = 'id, name, volume, category, price, sale_price, tags, brand, kind, fixation, highlight, code, stock, active, color, image_url, description'
 
-let publicViewMissing = false
+// Si la vista no existe (el servidor responde 404 / PGRST205), se recuerda en el navegador
+// durante unas horas: así cada visita no gasta una petición fallida antes de pedir la tabla.
+// Pasado ese tiempo se vuelve a intentar, por si ya se ejecutó supabase/performance.sql.
+const VIEW_RETRY_MS = 6 * 60 * 60 * 1000
+let publicViewMissing = (() => {
+  const at = readCache('products_view_missing')
+  return typeof at === 'number' && Date.now() - at < VIEW_RETRY_MS
+})()
+
+const isMissingRelation = (r) => r.status === 404 || r.error?.code === 'PGRST205' || r.error?.code === '42P01'
 
 export async function fetchActiveProducts() {
   if (!publicViewMissing) {
     const viaView = await supabase.from('products_public').select(PUBLIC_PRODUCT_COLUMNS).order('name')
     if (!viaView.error) return viaView.data
     publicViewMissing = true // no se vuelve a intentar en esta visita
+    // solo se guarda si de verdad falta la vista; un fallo de red no debe marcarla como ausente
+    if (isMissingRelation(viaView)) writeCache('products_view_missing', Date.now())
   }
   const { data, error } = await supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS).eq('active', true).order('name')
   if (error) throw error

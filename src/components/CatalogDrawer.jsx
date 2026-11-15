@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSettings } from '../settings'
 import { BottlePlaceholder } from './HomeHero'
-import { Icon, ICONS, INK, AMBER, mono } from './ui'
+import { Icon, ICONS, INK, AMBER, mono } from './dv-ui'
 
 const Chevron = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="text-slate-400 flex-shrink-0">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="text-[#78716C] flex-shrink-0">
     <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
@@ -28,7 +28,7 @@ function Row({ to, onClose, children, strong, accent }) {
 }
 
 const Label = ({ children }) => (
-  <p className="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400" style={mono}>
+  <p className="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#78716C]" style={mono}>
     {children}
   </p>
 )
@@ -61,17 +61,17 @@ export default function CatalogDrawer({ open, onClose, fragrances }) {
           <motion.aside
             role="dialog"
             aria-label="Catálogo"
-            className="absolute left-0 top-0 h-full w-[330px] max-w-[88vw] bg-neutral-100 shadow-2xl flex flex-col"
+            className="absolute left-0 top-0 h-full w-[330px] max-w-[88vw] bg-[#EDE8DF] shadow-2xl flex flex-col"
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex items-center justify-between px-5 h-16 flex-shrink-0 border-b border-neutral-200 bg-white">
+            <div className="flex items-center justify-between px-5 h-16 flex-shrink-0 border-b border-[#141414]/12 bg-white">
               <span className="flex items-center gap-3 text-lg font-bold" style={{ color: INK }}>
                 <Icon d="M4 7h16M4 12h16M4 17h16" size={20} /> Catálogo
               </span>
-              <button onClick={onClose} aria-label="Cerrar" className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:bg-neutral-100 text-2xl leading-none">
+              <button onClick={onClose} aria-label="Cerrar" className="w-9 h-9 flex items-center justify-center rounded-none text-[#57534E] hover:bg-[#EDE8DF] text-2xl leading-none">
                 ×
               </button>
             </div>
@@ -90,7 +90,7 @@ export default function CatalogDrawer({ open, onClose, fragrances }) {
                     {f.image ? <img src={f.image} alt="" className="w-9 h-9 object-contain flex-shrink-0" /> : <BottlePlaceholder className="w-9 h-9 flex-shrink-0" />}
                     <span className="min-w-0">
                       <span className="block truncate">{f.name}</span>
-                      {f.brand && <span className="block text-[10px] uppercase tracking-wider text-slate-400" style={mono}>{f.brand}</span>}
+                      {f.brand && <span className="block text-[10px] uppercase tracking-wider text-[#78716C]" style={mono}>{f.brand}</span>}
                     </span>
                   </span>
                 </Row>

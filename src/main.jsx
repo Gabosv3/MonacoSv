@@ -1,6 +1,6 @@
-import { StrictMode, Suspense, lazy } from 'react'
+import { StrictMode, Suspense, lazy, useLayoutEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import ComingSoon from './pages/ComingSoon.jsx'
@@ -33,6 +33,22 @@ const Featured = lazy(() => import('./admin/pages/Featured.jsx'))
 const Users = lazy(() => import('./admin/pages/Users.jsx'))
 const Roles = lazy(() => import('./admin/pages/Roles.jsx'))
 
+// Al pasar a otra página se empieza desde arriba. Antes se conservaba el scroll de la
+// página anterior: si era más larga, la nueva (por ejemplo, el pago) aparecía en su pie.
+// Con atrás / adelante no se toca: el navegador devuelve a donde estaba el visitante.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  const type = useNavigationType()
+  useLayoutEffect(() => {
+    if (type === 'POP') return
+    // en el Home el scroll con inercia sigue vivo un instante más y devolvía la página
+    // a la posición anterior: primero se le indica a él que vaya arriba, sin animación
+    window.__lenis?.scrollTo(0, { immediate: true, force: true })
+    window.scrollTo(0, 0)
+  }, [pathname, type])
+  return null
+}
+
 function AdminFallback() {
   return <p className="p-8 text-sm text-neutral-400">Cargando…</p>
 }
@@ -43,9 +59,11 @@ createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <SettingsProvider>
         <AccountProvider>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/fragancias" element={<App view="fragancias" />} />
+          <Route path="/fragancia/:slug" element={<App view="ficha" />} />
           <Route path="/cuenta" element={<App view="cuenta" />} />
           <Route path="/checkout" element={<App view="checkout" />} />
           <Route
@@ -107,6 +125,8 @@ createRoot(document.getElementById('root')).render(
             <Route path="ajustes" element={<RequirePermission perm="settings.view"><Settings /></RequirePermission>} />
             <Route path="roles" element={<RequirePermission perm="roles.view"><Roles /></RequirePermission>} />
           </Route>
+          {/* dirección que no existe (por ejemplo, un enlace mal copiado): al inicio, no pantalla en blanco */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </AccountProvider>
         </SettingsProvider>

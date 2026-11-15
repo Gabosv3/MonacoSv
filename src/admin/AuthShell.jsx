@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import './fonts'
 import bottleImg from '../assets/hero-khamrah-cut.webp'
 import { useSettings, useLogo } from '../settings'
 import { INK, AMBER, display, mono } from '../components/ui'
