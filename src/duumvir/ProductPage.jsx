@@ -185,11 +185,27 @@ function Gallery({ f, images, index, onIndex }) {
           )}
         </AnimatePresence>
         {f.code && <span className="absolute left-5 top-5 text-[13px] text-[#78716C]">Ref. {f.code}</span>}
+        {images.length > 1 && (
+          <>
+            <span className="absolute right-5 top-5 text-[13px] tabular-nums text-[#78716C]" aria-live="polite">{index + 1} / {images.length}</span>
+            {[['Foto anterior', -1, 'left-3', '‹'], ['Foto siguiente', 1, 'right-3', '›']].map(([label, step, side, glyph]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onIndex((index + step + images.length) % images.length)}
+                aria-label={label}
+                className={`absolute ${side} top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center bg-white/90 border border-[#141414]/12 text-2xl leading-none text-[#141414] hover:bg-white transition-colors`}
+              >
+                {glyph}
+              </button>
+            ))}
+          </>
+        )}
       </div>
       {images.length > 1 && (
-        <ul className="mt-3 flex gap-3" aria-label="Fotografías">
+        <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 dv-noscroll" aria-label="Fotografías">
           {images.map((u, i) => (
-            <li key={u}>
+            <li key={u} className="shrink-0">
               <button
                 type="button"
                 onClick={() => onIndex(i)}
@@ -307,7 +323,8 @@ export default function ProductPage({ fragrances, state, priceOf, onAdd, cartOpe
   const images = useMemo(() => {
     if (!f) return []
     const seen = new Set()
-    return [f.image, ...f.sizes.map((s) => s.product.image_url)].filter((u) => u && !seen.has(u) && seen.add(u))
+    // la principal, la de cada presentación y después las fotos adicionales de la galería
+    return [f.image, ...f.sizes.map((s) => s.product.image_url), ...(f.images ?? [])].filter((u) => u && !seen.has(u) && seen.add(u))
   }, [f])
 
   const related = useMemo(() => (f ? relatedTo(f, fragrances, priceOf) : []), [f, fragrances, priceOf])
@@ -453,7 +470,7 @@ export default function ProductPage({ fragrances, state, priceOf, onAdd, cartOpe
             </div>
           </Section>
 
-          <Section id="valoraciones" label="Opiniones de clientes" title="Valoraciones" intro="La experiencia de quienes ya la compraron." first={isFirst()}>
+          <Section id="valoraciones" label="Opiniones de clientes" title="Valoraciones" intro="Lo que opinan nuestros clientes. Las de quienes ya la compraron llevan la etiqueta «Compra verificada»." first={isFirst()}>
             <Reviews name={f.name} preview={preview?.reviews ?? null} onSummary={onSummary} />
           </Section>
 

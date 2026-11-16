@@ -76,12 +76,33 @@ export default function Showcase3D({ fragrance, priceOf, onAdd }) {
     <section ref={ref} className="relative overflow-hidden" style={{ background: '#F7F6F2', color: '#141414' }} data-nav="light" aria-labelledby="dv-showcase">
       <div className="relative min-h-[100svh] flex flex-col lg:block px-5 sm:px-10 pt-24 sm:pt-28 pb-8 sm:pb-10">
         {/* visor: ocupa el centro; el texto y los controles quedan en los márgenes */}
-        <motion.div
-          className="relative h-[54svh] lg:absolute lg:inset-x-0 lg:top-20 lg:bottom-0 lg:h-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: !webgl || ready ? 1 : 0 }}
-          transition={{ duration: 1.2, ease: EASE }}
-        >
+        <div className="relative h-[54svh] lg:absolute lg:inset-x-0 lg:top-20 lg:bottom-0 lg:h-auto">
+          {/* mientras el visor se descarga y se arma (puede tardar unos segundos): la foto del
+              frasco y un aviso, en lugar de un hueco vacío; se desvanece cuando el 3D está listo */}
+          {webgl && (
+            <motion.div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-6 pointer-events-none"
+              initial={false}
+              animate={{ opacity: ready ? 0 : 1 }}
+              transition={{ duration: 0.9, ease: EASE }}
+              role="status"
+              aria-hidden={ready}
+            >
+              {fragrance?.image && (
+                <img src={fragrance.image} alt="" className="h-[58%] max-w-[340px] object-contain mix-blend-multiply animate-pulse motion-reduce:animate-none" />
+              )}
+              <p className="flex items-center gap-3 text-[13px] text-[#57534E]">
+                <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin motion-reduce:animate-none" aria-hidden />
+                Cargando vista 3D…
+              </p>
+            </motion.div>
+          )}
+          <motion.div
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: !webgl || ready ? 1 : 0 }}
+            transition={{ duration: 1.2, ease: EASE }}
+          >
           {webgl ? (
             near && (
               // si el visor no se pudo descargar o dibujar, queda la foto en su lugar (no una página en blanco)
@@ -94,7 +115,8 @@ export default function Showcase3D({ fragrance, priceOf, onAdd }) {
           ) : (
             <FallbackImage fragrance={fragrance} />
           )}
-        </motion.div>
+          </motion.div>
+        </div>
 
         <div className="relative lg:min-h-[calc(100svh-9.5rem)] flex flex-col justify-end pointer-events-none">
           <div className="grid lg:grid-cols-12 gap-x-8 gap-y-6 items-end">

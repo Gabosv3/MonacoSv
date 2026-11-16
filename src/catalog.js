@@ -57,7 +57,9 @@ export function buildFragrances(products, { requireImage = true, genders = {} } 
       hours: first(rows, 'fixation') ?? null,
       notes: tagsOf(rows), // etiquetas del panel
       desc: first(rows, 'description') ?? '',
-      image: image ?? null, // foto subida en el panel
+      image: image ?? null, // foto principal, subida en el panel
+      // fotos adicionales de la galería (iguales en todas las presentaciones; sin repetir)
+      images: [...new Set(rows.flatMap((r) => (Array.isArray(r.images) ? r.images : [])).filter(Boolean))],
       sizes: rows
         .map((r) => ({ ml: mlOf(r.volume), product: r }))
         .sort((a, b) => a.ml - b.ml),

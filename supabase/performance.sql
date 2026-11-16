@@ -27,9 +27,13 @@ create index if not exists quotes_created_idx on quotes (created_at desc);
 create index if not exists user_roles_role_idx on user_roles (role_id);
 
 -- ---------- 2) Catálogo público sin costos ----------
+-- (la columna `images` es de product_gallery.sql; se asegura aquí para que este archivo
+-- funcione solo y la vista no pierda columnas si se vuelve a ejecutar)
+alter table products add column if not exists images text[] not null default '{}';
+
 create or replace view products_public as
 select id, name, volume, category, price, sale_price, tags, brand, kind, fixation,
-       highlight, code, stock, active, color, image_url, description
+       highlight, code, stock, active, color, image_url, description, images
 from products
 where active;
 

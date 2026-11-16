@@ -1,8 +1,9 @@
 import { useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
-import { createProduct, deleteProduct, listCategories, listProducts, setFragranceFields, setImageForName, updateProduct } from '../api'
+import { createProduct, deleteProduct, listCategories, listProducts, setFragranceFields, setFragranceImages, setImageForName, updateProduct } from '../api'
 import { USAGE_GROUPS, cleanUsage, setFragranceUsage } from '../../duumvir/experienceApi'
 import ImageUpload from '../ImageUpload'
+import GalleryUpload from '../GalleryUpload'
 import { formatPrice } from '../../catalog'
 import { useAuth } from '../AuthContext'
 import { INK, mono } from '../../components/ui'
@@ -50,6 +51,8 @@ export default function Products() {
   const [applyAll, setApplyAll] = useState(true) // misma foto para las otras presentaciones
   const [usage, setUsage] = useState({}) // guía de uso (1 a 5 por eje); se guarda aparte del producto
   const [usageTouched, setUsageTouched] = useState(false) // solo se guarda si se cambió
+  const [gallery, setGallery] = useState([]) // fotos adicionales de la ficha; se guardan aparte del producto
+  const [galleryTouched, setGalleryTouched] = useState(false) // solo se guardan si se cambiaron
   const [originalImage, setOriginalImage] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [statusFilter, setStatusFilter] = useState('todos') // todos | activos | ocultos | bajo
@@ -93,6 +96,8 @@ export default function Products() {
     setApplyAll(true)
     setUsage({})
     setUsageTouched(false)
+    setGallery([])
+    setGalleryTouched(false)
     setForm(EMPTY)
     setOpen(true)
   }
@@ -103,6 +108,8 @@ export default function Products() {
     setApplyAll(true)
     setUsage(cleanUsage(p.usage))
     setUsageTouched(false)
+    setGallery(Array.isArray(p.images) ? p.images : [])
+    setGalleryTouched(false)
     setForm({
       name: p.name,
       category: p.category,
@@ -168,8 +175,17 @@ export default function Products() {
           usageNote = ' La guía de uso no se guardó: falta ejecutar supabase/product_experience.sql en el SQL Editor de Supabase.'
         }
       }
+      // las fotos adicionales también van en su propia columna: sin ella, el producto se guarda igual
+      let galleryNote = ''
+      if (galleryTouched) {
+        try {
+          await setFragranceImages(payload.name, gallery)
+        } catch {
+          galleryNote = ' Las fotos adicionales no se guardaron: falta ejecutar supabase/product_gallery.sql en el SQL Editor de Supabase.'
+        }
+      }
       setOpen(false)
-      if (usageNote) setNotice(`Producto guardado.${usageNote}`)
+      if (usageNote || galleryNote) setNotice(`Producto guardado.${usageNote}${galleryNote}`)
       load()
     } catch (err) {
       setError(/column|schema cache/i.test(err.message) ? 'Falta actualizar la base de datos. Ejecuta supabase/product_fields.sql y supabase/accounts_and_settings.sql en el SQL Editor de Supabase y recarga.' : err.message)
@@ -519,6 +535,16 @@ export default function Products() {
                 </span>
               </label>
             )}
+            <GalleryUpload
+              images={gallery}
+              onChange={(list) => {
+                setGallery(list)
+                setGalleryTouched(true)
+              }}
+              main={form.image_url}
+              onMakeMain={(url) => set({ image_url: url })}
+              color={form.color}
+            />
             <Field label="Color de respaldo" hint="Se usa si el producto no tiene foto.">
               <input type="color" value={form.color} onChange={(e) => set({ color: e.target.value })} className="w-14 h-11 rounded-xl border border-neutral-300 bg-white p-1 cursor-pointer" />
             </Field>

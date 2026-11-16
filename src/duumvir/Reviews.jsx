@@ -204,7 +204,7 @@ export default function Reviews({ name, preview = null, onSummary }) {
           {status?.reason === 'sin_sesion' && (
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
               <button type="button" onClick={() => openAccount('login', { next: pathname })} className="dv-btn dv-btn--line">Ingresar para valorar</button>
-              <p className="text-[13px] text-[#57534E]">Valoran quienes ya compraron esta fragancia.</p>
+              <p className="text-[13px] text-[#57534E]">Cuéntanos tu experiencia con esta fragancia. Las de quienes ya la compraron llevan la etiqueta «Compra verificada».</p>
             </div>
           )}
           {status?.reason === 'sin_compra' && (
@@ -231,7 +231,10 @@ export default function Reviews({ name, preview = null, onSummary }) {
                 <button type="button" onClick={() => setOpen(false)} className="text-[14px] font-semibold underline underline-offset-4">Cancelar</button>
                 {status?.review && <button type="button" onClick={remove} disabled={busy} className="ml-auto text-[13px] text-[#57534E] underline underline-offset-4 hover:text-[#141414]">Retirar mi valoración</button>}
               </div>
-              <p className="text-[13px] leading-relaxed text-[#57534E]">Se publica con tu nombre de pila y la inicial de tu apellido, marcada como compra verificada.</p>
+              <p className="text-[13px] leading-relaxed text-[#57534E]">
+                Se publica con tu nombre de pila y la inicial de tu apellido
+                {status?.verified_buyer ? ', marcada como compra verificada.' : '. La etiqueta «Compra verificada» solo la llevan las valoraciones de quienes compraron esta fragancia.'}
+              </p>
             </form>
           )}
         </div>

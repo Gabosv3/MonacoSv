@@ -31,7 +31,7 @@ function privacy({ store, city, contact }) {
         list: [
           'Registrar y entregar tus pedidos, y coordinar contigo el pago y la entrega por WhatsApp.',
           'Mostrarte tu historial y guardar tus datos para tu próxima compra, si tienes cuenta.',
-          'Comprobar que una valoración viene de una compra real.',
+          'Marcar como «Compra verificada» las valoraciones de quienes sí compraron la fragancia.',
           'Atender tus consultas y resolver cualquier problema con tu pedido.',
         ],
         after: 'No vendemos tus datos ni los usamos para publicidad de terceros.',
@@ -123,7 +123,7 @@ function terms({ store, city, contact, coverage, freeMin }) {
       {
         title: 'Valoraciones',
         body: [
-          'Solo pueden valorar una fragancia los clientes con una compra confirmada de ella. Las valoraciones deben ser honestas y sin insultos ni datos personales; podemos ocultar las que incumplan esto.',
+          'Cualquier persona con cuenta puede valorar una fragancia. Las valoraciones de quienes compraron esa fragancia llevan la etiqueta «Compra verificada». Deben ser honestas y sin insultos ni datos personales; podemos ocultar las que incumplan esto.',
         ],
       },
       {

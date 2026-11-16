@@ -524,6 +524,15 @@ export async function setImageForName(name, imageUrl) {
   if (error) throw error
 }
 
+// Fotos adicionales de la fragancia (galería de la ficha), iguales en todas sus presentaciones.
+// Necesita supabase/product_gallery.sql.
+export const MAX_GALLERY_IMAGES = 8
+export async function setFragranceImages(name, images) {
+  const list = [...new Set((images ?? []).map((u) => String(u).trim()).filter(Boolean))].slice(0, MAX_GALLERY_IMAGES)
+  const { error } = await supabase.from('products').update({ images: list }).eq('name', name)
+  if (error) throw error
+}
+
 // ---------- Cuenta del cliente (tienda) ----------
 
 export async function fetchMyCustomer(userId) {
@@ -630,6 +639,23 @@ export async function fetchActiveCategories() {
 // supabase/performance.sql, cae a la tabla pero pidiendo solo las columnas públicas.
 const PUBLIC_PRODUCT_COLUMNS = 'id, name, volume, category, price, sale_price, tags, brand, kind, fixation, highlight, code, stock, active, color, image_url, description'
 
+// `images` (fotos adicionales) es de supabase/product_gallery.sql. Mientras esa columna no exista,
+// pedirla haría fallar TODA la consulta del catálogo: si el servidor dice que falta, se pide sin ella.
+let withImages = true
+const publicColumns = () => (withImages ? `${PUBLIC_PRODUCT_COLUMNS}, images` : PUBLIC_PRODUCT_COLUMNS)
+const isMissingColumn = (r) => r.error?.code === '42703' || /column .*images.* does not exist/i.test(r.error?.message ?? '')
+
+async function selectPublic(build) {
+  let res = await build(publicColumns())
+  if (res.error && withImages && isMissingColumn(res)) {
+    withImages = false
+    res = await build(publicColumns())
+  }
+  return res
+}
+const fromView = () => selectPublic((cols) => supabase.from('products_public').select(cols).order('name'))
+const fromTable = () => selectPublic((cols) => supabase.from('products').select(cols).eq('active', true).order('name'))
+
 // Si la vista no existe (el servidor responde 404 / PGRST205), se recuerda en el navegador
 // durante unas horas: así cada visita no gasta una petición fallida antes de pedir la tabla.
 // Pasado ese tiempo se vuelve a intentar, por si ya se ejecutó supabase/performance.sql.
@@ -644,19 +670,19 @@ const isMissingRelation = (r) => r.status === 404 || r.error?.code === 'PGRST205
 async function loadActiveProducts() {
   const skippedView = publicViewMissing // ¿se partió de "la vista no existe"? (aviso guardado de antes)
   if (!publicViewMissing) {
-    const viaView = await supabase.from('products_public').select(PUBLIC_PRODUCT_COLUMNS).order('name')
+    const viaView = await fromView()
     if (!viaView.error) return viaView.data
     publicViewMissing = true // no se vuelve a intentar en esta visita
     // solo se guarda si de verdad falta la vista; un fallo de red no debe marcarla como ausente
     if (isMissingRelation(viaView)) writeCache('products_view_missing', Date.now())
   }
-  const { data, error } = await supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS).eq('active', true).order('name')
+  const { data, error } = await fromTable()
   if (error) throw error
   // Con supabase/performance.sql ya ejecutado, la tabla solo la lee el personal: para un visitante
   // devuelve una lista VACÍA (no un error). Si el aviso de "falta la vista" quedó guardado de antes de
   // ejecutarlo, sin esto la tienda se vería vacía hasta que venza. Una lista vacía vuelve a probar la vista.
   if (!data?.length && skippedView) {
-    const retry = await supabase.from('products_public').select(PUBLIC_PRODUCT_COLUMNS).order('name')
+    const retry = await fromView()
     if (!retry.error) {
       publicViewMissing = false
       writeCache('products_view_missing', null)
