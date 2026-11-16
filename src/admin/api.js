@@ -641,7 +641,8 @@ let publicViewMissing = (() => {
 
 const isMissingRelation = (r) => r.status === 404 || r.error?.code === 'PGRST205' || r.error?.code === '42P01'
 
-export async function fetchActiveProducts() {
+async function loadActiveProducts() {
+  const skippedView = publicViewMissing // ¿se partió de "la vista no existe"? (aviso guardado de antes)
   if (!publicViewMissing) {
     const viaView = await supabase.from('products_public').select(PUBLIC_PRODUCT_COLUMNS).order('name')
     if (!viaView.error) return viaView.data
@@ -651,7 +652,28 @@ export async function fetchActiveProducts() {
   }
   const { data, error } = await supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS).eq('active', true).order('name')
   if (error) throw error
+  // Con supabase/performance.sql ya ejecutado, la tabla solo la lee el personal: para un visitante
+  // devuelve una lista VACÍA (no un error). Si el aviso de "falta la vista" quedó guardado de antes de
+  // ejecutarlo, sin esto la tienda se vería vacía hasta que venza. Una lista vacía vuelve a probar la vista.
+  if (!data?.length && skippedView) {
+    const retry = await supabase.from('products_public').select(PUBLIC_PRODUCT_COLUMNS).order('name')
+    if (!retry.error) {
+      publicViewMissing = false
+      writeCache('products_view_missing', null)
+      return retry.data
+    }
+  }
   return data
+}
+
+// Una sola consulta a la vez: si la tienda la pide dos veces seguidas (React ejecuta los efectos
+// dos veces en desarrollo), comparten la misma respuesta en vez de pisarse entre sí.
+let activeProductsRequest = null
+export function fetchActiveProducts() {
+  activeProductsRequest ??= loadActiveProducts().finally(() => {
+    activeProductsRequest = null
+  })
+  return activeProductsRequest
 }
 
 export async function fetchActiveDiscounts() {

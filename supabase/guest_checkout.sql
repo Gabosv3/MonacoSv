@@ -199,7 +199,9 @@ begin
 
   -- cupón
   if coalesce(trim(p_coupon), '') <> '' then
-    select * into cp from coupons where active and lower(code) = lower(trim(p_coupon));
+    -- for update: dos pedidos simultáneos con el mismo cupón se turnan (si no, ambos verían
+    -- "queda 1 uso" y el cupón se pasaría de su límite)
+    select * into cp from coupons where active and lower(code) = lower(trim(p_coupon)) for update;
     if not found then
       raise exception 'El cupón no es válido.';
     end if;

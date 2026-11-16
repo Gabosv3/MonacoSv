@@ -15,6 +15,26 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const field = 'w-full h-12 rounded-none border border-[#141414]/25 bg-white px-4 text-[15px] text-[#141414] outline-none transition-colors placeholder:text-[#78716C] focus:border-[#141414] focus:ring-4 focus:ring-slate-900/5 aria-[invalid=true]:border-red-600'
 const label = 'block mb-1.5 text-[13px] font-semibold text-[#141414]'
 const rpcMissing = (err) => /could not find the function|schema cache/i.test(err?.message ?? '')
+
+// Borrador de los datos del pago: al ingresar con Google el navegador sale de la tienda y vuelve,
+// y sin esto el cliente tendría que escribir todo otra vez. Solo en esta pestaña; se borra al
+// registrar el pedido.
+const DRAFT_KEY = 'duumvir_checkout_draft'
+const readDraft = () => {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY))
+    return saved && typeof saved === 'object' ? saved : {}
+  } catch {
+    return {}
+  }
+}
+const clearDraft = () => {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY)
+  } catch {
+    /* sin almacenamiento */
+  }
+}
 const wrap = 'max-w-[1100px] mx-auto px-5 sm:px-6 lg:px-12 pt-8 pb-20 lg:pt-12 lg:pb-24'
 
 // Pago: con cuenta o como invitado. Con cuenta, los datos se rellenan con los guardados
@@ -27,16 +47,17 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
   const { openAccount } = useAccount()
   const freeMin = Number(cfg.free_shipping_min) || 0
 
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [delivery, setDelivery] = useState('envio')
-  const [department, setDepartment] = useState('')
-  const [municipality, setMunicipality] = useState('')
-  const [address, setAddress] = useState('')
-  const [notes, setNotes] = useState('')
+  const [draft] = useState(readDraft)
+  const [name, setName] = useState(draft.name ?? '')
+  const [phone, setPhone] = useState(draft.phone ?? '')
+  const [delivery, setDelivery] = useState(draft.delivery === 'retiro' ? 'retiro' : 'envio')
+  const [department, setDepartment] = useState(draft.department ?? '')
+  const [municipality, setMunicipality] = useState(draft.municipality ?? '')
+  const [address, setAddress] = useState(draft.address ?? '')
+  const [notes, setNotes] = useState(draft.notes ?? '')
   const [saveData, setSaveData] = useState(true)
   const [carriers, setCarriers] = useState([]) // paqueteras con su precio de envío
-  const [carrierId, setCarrierId] = useState('')
+  const [carrierId, setCarrierId] = useState(draft.carrierId ?? '')
   const [formError, setFormError] = useState('')
   const [busy, setBusy] = useState(null) // 'order' | 'orderWa' | 'quote' | 'draft'
   const [result, setResult] = useState(null)
@@ -50,6 +71,16 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
   useEffect(() => {
     listShippingOptions().then(setCarriers).catch(() => setCarriers([]))
   }, [])
+
+  // el borrador se guarda mientras se llena el formulario (no con el pedido ya registrado)
+  useEffect(() => {
+    if (result) return
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ name, phone, delivery, department, municipality, address, notes, carrierId }))
+    } catch {
+      /* sin almacenamiento: no hay borrador */
+    }
+  }, [name, phone, delivery, department, municipality, address, notes, carrierId, result])
 
   // datos guardados en la cuenta
   useEffect(() => {
@@ -230,8 +261,10 @@ export default function CheckoutPage({ items, discounts, subtotal, coupon, onCou
         })
         data = localData('pedido', sale?.order_number ?? null)
       }
-      await rememberData()
+      // guardar los datos en la cuenta no retrasa la confirmación: ya tiene su propio manejo de errores
+      void rememberData()
       requestId.current = crypto.randomUUID?.() ?? null // el siguiente pedido es otro envío
+      clearDraft() // el pedido ya quedó registrado: no se conservan sus datos de entrega
       setResult({ data })
       onOrderPlaced?.()
       window.scrollTo({ top: 0 })

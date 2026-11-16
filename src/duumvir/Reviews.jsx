@@ -119,8 +119,9 @@ export default function Reviews({ name, preview = null, onSummary }) {
       await submitReview({ name, rating, comment: comment.trim(), longevity, projection })
       setOpen(false)
       setDone('Gracias. Tu valoración ya está publicada.')
-      setStatus(await fetchMyReviewStatus(name))
-      await load()
+      // las dos consultas son independientes: se piden a la vez
+      const [mine] = await Promise.all([fetchMyReviewStatus(name), load()])
+      setStatus(mine)
     } catch (err) {
       setError(err.message || 'No pudimos guardar tu valoración. Inténtalo de nuevo.')
     } finally {
@@ -135,8 +136,8 @@ export default function Reviews({ name, preview = null, onSummary }) {
       await deleteMyReview(name)
       setOpen(false)
       setDone('Retiramos tu valoración.')
-      setStatus(await fetchMyReviewStatus(name))
-      await load()
+      const [mine] = await Promise.all([fetchMyReviewStatus(name), load()])
+      setStatus(mine)
     } catch (err) {
       setError(err.message)
     } finally {

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../admin/AuthContext'
+import { authReturnError, clearAuthReturnError, googleEnabled } from '../lib/authProviders'
 import { useSettings, useLogo } from '../settings'
 import { INK, AMBER, display, mono } from './dv-ui'
 
@@ -30,7 +31,7 @@ const GoogleIcon = () => (
   </svg>
 )
 
-function AccountModal({ open, initialTab, next, onClose }) {
+function AccountModal({ open, initialTab, next, message, onClose }) {
   const navigate = useNavigate()
   const { login, signUpCustomer, signInWithGoogle, requestPasswordReset, session } = useAuth()
   const { cfg } = useSettings()
@@ -44,15 +45,20 @@ function AccountModal({ open, initialTab, next, onClose }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  // Google solo se ofrece si está activado en Supabase (si no, el botón llevaría a una página de error)
+  const [googleOn, setGoogleOn] = useState(true)
+  useEffect(() => {
+    googleEnabled().then(setGoogleOn)
+  }, [])
 
   useEffect(() => {
     if (open) {
       setTab(initialTab)
       setForgot(false)
-      setError('')
+      setError(message || '') // por ejemplo, el aviso de un ingreso con Google que no se completó
       setNotice('')
     }
-  }, [open, initialTab])
+  }, [open, initialTab, message])
 
   // al iniciar sesión se cierra solo
   useEffect(() => {
@@ -147,17 +153,23 @@ function AccountModal({ open, initialTab, next, onClose }) {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={google}
-              disabled={busy}
-              className="mt-5 w-full h-12 flex items-center justify-center gap-3 rounded-none border border-[#141414]/25 bg-white text-sm font-semibold text-[#141414] hover:bg-[#F7F6F2] disabled:opacity-60 transition-colors"
-            >
-              <GoogleIcon /> Continuar con Google
-            </button>
-            <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#78716C]" style={mono}>
-              <span className="flex-1 h-px bg-[#E2DCD0]" /> o con tu correo <span className="flex-1 h-px bg-[#E2DCD0]" />
-            </div>
+            {googleOn ? (
+              <>
+                <button
+                  type="button"
+                  onClick={google}
+                  disabled={busy}
+                  className="mt-5 w-full h-12 flex items-center justify-center gap-3 rounded-none border border-[#141414]/25 bg-white text-sm font-semibold text-[#141414] hover:bg-[#F7F6F2] disabled:opacity-60 transition-colors"
+                >
+                  <GoogleIcon /> Continuar con Google
+                </button>
+                <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-widest text-[#78716C]" style={mono}>
+                  <span className="flex-1 h-px bg-[#E2DCD0]" /> o con tu correo <span className="flex-1 h-px bg-[#E2DCD0]" />
+                </div>
+              </>
+            ) : (
+              <div className="mt-5" />
+            )}
           </>
         )}
 
@@ -202,9 +214,12 @@ function AccountModal({ open, initialTab, next, onClose }) {
         {forgot && (
           <button onClick={() => { setForgot(false); setError(''); setNotice('') }} className="mt-5 text-sm text-[#57534E] hover:text-[#141414]">← Volver a ingresar</button>
         )}
-        {!forgot && tab === 'register' && (
+        {!forgot && (
           <p className="mt-5 text-xs text-[#78716C] leading-relaxed">
-            Al crear tu cuenta aceptas que usemos tus datos para gestionar tus pedidos y cotizaciones. <span style={{ color: AMBER }}>Nunca los compartimos.</span>
+            {tab === 'register' ? 'Al crear tu cuenta' : 'Al continuar'} aceptas nuestros{' '}
+            <Link to="/terminos" onClick={onClose} className="underline underline-offset-2 hover:text-[#141414]">Términos</Link> y la{' '}
+            <Link to="/privacidad" onClick={onClose} className="underline underline-offset-2 hover:text-[#141414]">Política de privacidad</Link>.{' '}
+            {tab === 'register' && <span style={{ color: AMBER }}>Usamos tus datos para gestionar tus pedidos; no los vendemos.</span>}
           </p>
         )}
       </div>
@@ -214,14 +229,24 @@ function AccountModal({ open, initialTab, next, onClose }) {
 
 // Un solo modal para toda la tienda: cualquier botón puede llamar a openAccount().
 export function AccountProvider({ children }) {
-  const [state, setState] = useState({ open: false, tab: 'login', next: null })
+  const [state, setState] = useState({ open: false, tab: 'login', next: null, message: '' })
   // openAccount('login', { next: '/checkout' }): al ingresar, sigue a esa página
-  const openAccount = useCallback((tab = 'login', opts = {}) => setState({ open: true, tab, next: opts.next ?? null }), [])
+  const openAccount = useCallback((tab = 'login', opts = {}) => setState({ open: true, tab, next: opts.next ?? null, message: opts.message ?? '' }), [])
   const close = useCallback(() => setState((s) => ({ ...s, open: false })), [])
+
+  // Si Google devolvió un error al volver a la tienda (por ejemplo, cancelaron el ingreso), se explica
+  // en el modal y se limpia la dirección, en vez de dejar al cliente en una página sin explicación.
+  useEffect(() => {
+    const message = authReturnError()
+    if (!message) return
+    clearAuthReturnError()
+    openAccount('login', { message })
+  }, [openAccount])
+
   return (
     <AccountContext.Provider value={{ openAccount }}>
       {children}
-      <AccountModal open={state.open} initialTab={state.tab} next={state.next} onClose={close} />
+      <AccountModal open={state.open} initialTab={state.tab} next={state.next} message={state.message} onClose={close} />
     </AccountContext.Provider>
   )
 }

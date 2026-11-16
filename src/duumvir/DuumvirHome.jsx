@@ -223,6 +223,10 @@ function Hero({ cfg, ready }) {
     }
   }, [revealed, ready])
 
+  // Con movimiento reducido o ahorro de datos no se descarga ni reproduce el video (casi 5 MB):
+  // se muestra su imagen de portada, fija.
+  const [lite] = useState(() => Boolean(reduce) || Boolean(navigator.connection?.saveData))
+
   // reproducción automática; si el navegador la impide, queda la imagen de respaldo
   useEffect(() => {
     const v = video.current
@@ -262,19 +266,30 @@ function Hero({ cfg, ready }) {
     <section ref={ref} className="relative h-[230vh]" data-nav="dark">
       <div className="sticky top-0 h-[100svh] overflow-hidden">
         <motion.div className="absolute inset-0" style={{ clipPath: clip }}>
-          <motion.video
-            ref={video}
-            className="w-full h-full object-cover"
-            style={{ scale }}
-            src={cfg.intro_video_url || '/hero/hero-scrub.mp4'}
-            poster={cfg.intro_poster_url || '/hero/hero-poster.jpg'}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-hidden
-          />
+          {lite ? (
+            <motion.img
+              className="w-full h-full object-cover"
+              style={{ scale }}
+              src={cfg.intro_poster_url || '/hero/hero-poster.jpg'}
+              alt=""
+              fetchPriority="high"
+              aria-hidden
+            />
+          ) : (
+            <motion.video
+              ref={video}
+              className="w-full h-full object-cover"
+              style={{ scale }}
+              src={cfg.intro_video_url || '/hero/hero-scrub.mp4'}
+              poster={cfg.intro_poster_url || '/hero/hero-poster.jpg'}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-hidden
+            />
+          )}
           <div className="absolute inset-0 bg-[#141414]/25" />
           <motion.div className="absolute inset-0 bg-[#141414]" style={{ opacity: dim }} />
         </motion.div>
@@ -526,6 +541,8 @@ export function Closing() {
             <li><Link className="dv-link" to="/cuenta">Mi cuenta</Link></li>
             <li><Link className="dv-link" to="/nosotros">Nosotros</Link></li>
             <li><Link className="dv-link" to="/contacto">Contacto</Link></li>
+            <li><Link className="dv-link" to="/privacidad">Privacidad</Link></li>
+            <li><Link className="dv-link" to="/terminos">Términos</Link></li>
           </ul>
         </div>
         <div>
@@ -571,15 +588,26 @@ export default function DuumvirHome({ fragrances, women = [], allFragrances = []
       const under = document.elementsFromPoint(window.innerWidth / 2, 96).find((el) => !el.closest('header') && el.closest('[data-nav]'))
       setNavTheme(under?.closest('[data-nav]').dataset.nav === 'light' ? 'light' : 'dark')
     }
+    // elementsFromPoint obliga al navegador a calcular el diseño: se pide como máximo una
+    // vez por fotograma (el scroll dispara muchos eventos por fotograma) y no con la pestaña oculta
+    let frame = 0
+    const schedule = () => {
+      if (frame || document.hidden) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        read()
+      })
+    }
     read()
-    window.addEventListener('scroll', read, { passive: true })
-    window.addEventListener('resize', read)
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
     // las escenas cambian de fondo sin mover el scroll: se vuelve a leer cada poco
-    const tick = setInterval(read, 300)
+    const tick = setInterval(schedule, 300)
     return () => {
-      window.removeEventListener('scroll', read)
-      window.removeEventListener('resize', read)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
       clearInterval(tick)
+      cancelAnimationFrame(frame)
     }
   }, [])
 

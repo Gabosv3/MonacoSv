@@ -1,8 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { googleEnabled } from '../lib/authProviders'
 import { fetchMyAccess, fetchMyCustomer } from './api'
 
 const AuthContext = createContext(null)
+
+// Solo se vuelve a una página de esta tienda: la ruta debe empezar con una sola "/"
+const safeNext = (next) => (typeof next === 'string' && /^\/(?!\/)/.test(next) ? next : '/cuenta')
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined) // undefined = cargando, null = sin sesión
@@ -73,7 +77,7 @@ export function AuthProvider({ children }) {
       password,
       options: {
         data: { full_name: fullName, customer: 'true' },
-        emailRedirectTo: `${window.location.origin}${next}`,
+        emailRedirectTo: `${window.location.origin}${safeNext(next)}`,
       },
     })
     if (error) throw error
@@ -83,9 +87,11 @@ export function AuthProvider({ children }) {
   }
 
   const signInWithGoogle = async (next = '/cuenta') => {
+    // si Google no está activado en Supabase, se avisa aquí en vez de mandar al cliente a una página de error
+    if (!(await googleEnabled())) throw new Error('provider is not enabled')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}${next}` },
+      options: { redirectTo: `${window.location.origin}${safeNext(next)}` },
     })
     if (error) throw error
   }

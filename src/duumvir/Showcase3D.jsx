@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { PriceTag } from '../components/dv-ui'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { AddButton, Availability, fichaPath, inStock } from './commerce'
 
 // el visor (three.js) se descarga solo cuando la sección se acerca a la pantalla
@@ -17,6 +18,16 @@ function webglAvailable() {
   } catch {
     return false
   }
+}
+
+// Foto de la fragancia: sustituye al visor 3D cuando el navegador no tiene WebGL o el visor falla.
+// `onShown` avisa de que ya hay algo que mostrar (el contenedor espera al visor para aparecer).
+function FallbackImage({ fragrance, onShown }) {
+  useEffect(() => {
+    onShown?.()
+  }, [onShown])
+  if (!fragrance?.image) return null
+  return <img src={fragrance.image} alt="Odyssey Mandarin Sky Limited Edition" className="h-full max-w-[420px] mx-auto object-contain mix-blend-multiply" />
 }
 
 // Exhibición 3D de Odyssey Mandarin Sky Limited Edition, justo antes de la selección.
@@ -73,12 +84,15 @@ export default function Showcase3D({ fragrance, priceOf, onAdd }) {
         >
           {webgl ? (
             near && (
-              <Suspense fallback={null}>
-                <BottleViewer active={visible} reduce={Boolean(reduce)} api={api} onInteract={onInteract} onReady={onReady} />
-              </Suspense>
+              // si el visor no se pudo descargar o dibujar, queda la foto en su lugar (no una página en blanco)
+              <ErrorBoundary fallback={<FallbackImage fragrance={fragrance} onShown={onReady} />}>
+                <Suspense fallback={null}>
+                  <BottleViewer active={visible} reduce={Boolean(reduce)} api={api} onInteract={onInteract} onReady={onReady} />
+                </Suspense>
+              </ErrorBoundary>
             )
           ) : (
-            fragrance?.image && <img src={fragrance.image} alt="Odyssey Mandarin Sky Limited Edition" className="h-full max-w-[420px] mx-auto object-contain mix-blend-multiply" />
+            <FallbackImage fragrance={fragrance} />
           )}
         </motion.div>
 

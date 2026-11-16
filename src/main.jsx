@@ -66,6 +66,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/fragancia/:slug" element={<App view="ficha" />} />
           <Route path="/cuenta" element={<App view="cuenta" />} />
           <Route path="/checkout" element={<App view="checkout" />} />
+          <Route path="/privacidad" element={<App view="privacidad" />} />
+          <Route path="/terminos" element={<App view="terminos" />} />
           <Route
             path="/cuenta/restablecer"
             element={
